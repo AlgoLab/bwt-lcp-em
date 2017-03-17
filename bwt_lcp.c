@@ -101,13 +101,14 @@ int main(int argc, char *argv[]) {
 			dxAlignCounter--;			
 		}
 		linesCounter+=2;
+		free(readOne);
+		if(mustFreeReadTwo)
+			free(readTwo);
 
 	}
-	printf("%d\n", linesCounter);
 
 	// write the last file (i.e the last column) with all termination characters ($) (with their encoding)
 	int sizeSentinels = (linesCounter / 2) + 1;
-	printf("%d\n", linesCounter % 2);
 	char *sentinels = (char *)malloc(sizeSentinels * sizeof(char));
 	for (int i = 0; i < sizeSentinels; ++i) {
 		if((i == sizeSentinels -1) && (linesCounter % 2 == 1))
@@ -122,9 +123,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i <= readMaxLength; ++i) {
 		fclose(filePointers[i]); 	
 	}
-	free(readOne);
-	if(mustFreeReadTwo)
-		free(readTwo);
+
 	free(sentinels);
 	free(filePointers);
 	free(filepath);
