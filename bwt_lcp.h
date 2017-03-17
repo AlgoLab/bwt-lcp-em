@@ -5,8 +5,5 @@
 #include <math.h>
 #include "kseq.h"
 
-#define REWIND(kseq, gzfp) \
-	kseq_rewind(kseq); 	\
-	gzrewind(gzfp);
 
 #endif

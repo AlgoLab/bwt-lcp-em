@@ -1,36 +1,11 @@
-/*
 #ifndef DICTIONARY_H
 #define DICTIONARY_H
 
-char encode(char base){
-	char encoded;
-	if (base == 'A' || base == 'a')
-		encoded = 0x00;
+#include <assert.h>
+char getCode(char base);
+char merge(char first, char second);
+// todo: decoding
 
-	else if(base == 'C' || base == 'c')
-		encoded = 0x01;
-
-	else if(base == 'G' || base == 'g')
-		encoded = 0x02;
-
-	else if(base == 'T' || base == 't')
-		encoded = 0x03;
-
-	else if(base == '$')
-		encoded = 0x04;
-
-	else {
-		//assuming no other char
-		assert(base == '#');
-		encoded = 0x05;
-	}
-
-}
-
-char merge(char first, char second){
-	first = first << 4;
-	return first & second;
-}
 
 /*
 A -> 0000
@@ -39,7 +14,7 @@ G -> 0010
 T -> 0011
 $ -> 0100
 # -> 0101
-
+@ -> 0110 -> indicates no information (used when only the first half of the byte is used)
+*/
 
 #endif
-*/
