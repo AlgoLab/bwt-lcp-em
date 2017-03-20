@@ -29,3 +29,5 @@
 *.app
 
 tests/arrays/
+bwt_lcp
+decode
