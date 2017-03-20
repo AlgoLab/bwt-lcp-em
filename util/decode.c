@@ -24,7 +24,10 @@ int main(int argc, char **argv) {
   char c1, c2;
 
   pFile = fopen(argv[1], "r");
-  if(pFile == NULL) fprintf(stderr, "Error while opening the file\n");
+  if(pFile == NULL) {
+    fprintf(stderr, "Error while opening the file\n");
+    return 1;
+  }
   else {
     do {
       c = fgetc(pFile);
@@ -34,5 +37,6 @@ int main(int argc, char **argv) {
       printf("%c\n", c2);
     } while(c!=EOF);
   }
+  fclose(pFile);
   return 0;
 }
