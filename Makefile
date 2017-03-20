@@ -8,4 +8,7 @@ $(P): $(P).c $(P).h kseq.h dictionary.h
 
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe $(P) tests/arrays/*
+	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode
+
+decode: util/decode.c
+	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
