@@ -2,10 +2,16 @@
 #define DICTIONARY_H
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 char getCode(char base);
 char merge(char first, char second);
-// todo: decoding
-
+char charToCode(char toDecode);
+char getChars(char toDecode, bool odd);
+char *decode(FILE **filePointers, int readMaxLength, int toDecode); 
 
 /*
 A -> 0000

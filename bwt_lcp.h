@@ -3,6 +3,7 @@
 #include <zlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include "kseq.h"
 
 

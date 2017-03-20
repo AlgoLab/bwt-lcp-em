@@ -83,12 +83,12 @@ int main(int argc, char *argv[]) {
 				j--;
 				i--;
 			}
-			else if(i < 0 && j > 0) {
+			else if(i <= 0 && j > 0) {
 				toWrite = merge('#', readTwo[j-1]);
 				fputc(toWrite, filePointers[dxAlignCounter-1]);
 				j--;
 			}
-			else if(i > 0 && j < 0) {
+			else if(i > 0 && j <= 0) {
 				toWrite = merge(readOne[i], '#');
 				fputc(toWrite, filePointers[dxAlignCounter-1]);
 				i--;
@@ -124,16 +124,19 @@ int main(int argc, char *argv[]) {
 		fclose(filePointers[i]); 	
 	}
 
+	// Testing decode
+	int readToTest = 2;
+	char *test = decode(filePointers, readMaxLength, readToTest);
+	printf("read[%d]: %s\n", readToTest, test);
+	free(test);
+	// end test
+
 	free(sentinels);
 	free(filePointers);
 	free(filepath);
 	kseq_destroy(seq);
   	gzclose(fp);
 
-  	/*
-		ToDo:  Decoding
-
-  	*/
 
   	return 0;
 }
