@@ -12,3 +12,6 @@ clean:
 
 decode: util/decode.c
 	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
+
+test:
+	./$(P) tests/test.fasta
