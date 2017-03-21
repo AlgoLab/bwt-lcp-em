@@ -1,6 +1,6 @@
 P = bwt_lcp
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -std=c99 -Wall
 LDFLAGS = -lz -lm
 
 $(P): $(P).c $(P).h kseq.h dictionary.h
