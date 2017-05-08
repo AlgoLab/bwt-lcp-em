@@ -14,7 +14,7 @@ decode: util/decode.c
 	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
 
 test:
-	./$(P) tests/test2.fasta
+	./$(P) tests/uploaded_test.fasta
 
 debug: $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
 	$(CC) $(CFLAGS) -g $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS)
