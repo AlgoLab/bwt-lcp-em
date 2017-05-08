@@ -1,5 +1,6 @@
 #include "bwt_lcp.h"
-#include "dictionary.h"
+
+
 
 KSEQ_INIT(gzFile, gzread)
 
@@ -7,8 +8,7 @@ int main(int argc, char *argv[]) {
 	// Initialization
 	gzFile fp;
 	kseq_t *seq;
-	int readMaxLength;
-	int l;
+
 	// Error if no file is given as input
 	if (argc == 1) {
     	fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
@@ -18,26 +18,21 @@ int main(int argc, char *argv[]) {
 	fp = gzopen(argv[1], "r");
 	seq = kseq_init(fp);
 
+	int readMaxLength = 0;
+	int l;
+
 	// Calculate the length of the longest read (used mostly to know how many stream need to be opened)
-	while((l = kseq_read(seq)) >= 0){
+	while((l = kseq_read(seq)) >= 0) {
 		if(l > readMaxLength)
 			readMaxLength = l;
 	}
 
-	// Variables for file names
-	const char *filepathTemplate = "./tests/arrays/T%d.txt";
-	int sizeFilepath = (int)(ceil(log10(readMaxLength))+1);
-	char *filepath = (char *)calloc(sizeFilepath + strlen(filepathTemplate) - 2, sizeof(char));
 
 	// Array with pointers to all files
 	FILE **filePointers = (FILE **)malloc((readMaxLength+1) * sizeof(FILE *));
 
 	// Opening all streams in "write-only" mode
-	for (int i = 0; i <= readMaxLength; ++i) {
-		sprintf(filepath, filepathTemplate, i);
-		filePointers[i] = fopen(filepath, "w");
-		//setbuf(filePointers[i], NULL); --> la libreria standard utilizza già buffer efficienti
-	}
+	char **fileIOBuffers = openStreams(filePointers, readMaxLength, "w", "./tests/arrays/T%d.txt");
 
 	// Return the position indicator at the beginning of the file
 	kseq_rewind(seq);
@@ -53,13 +48,15 @@ int main(int argc, char *argv[]) {
 
 	while((i = kseq_read(seq)) >= 0) {
 		// Read 2 reads each time
-		readOne = (char *)malloc(i * sizeof(char));
+		// (+1 for null terminator)
+		readOne = (char *)malloc((i+1) * sizeof(char));
 		strcpy(readOne, seq -> seq.s);
 		j = kseq_read(seq);
 		// If the second read doesn't exist the file has an odd number of lines
 		// which means that the last byte will store only half of valuable data (the upper half)
 		// and the lower half will be the code of '@', the character that indicates no information
 		if(j < 0) { 
+
 			readTwo = (char *)malloc(readMaxLength * sizeof(char));
 			for (int k = 0; k < readMaxLength; ++k) {
 				readTwo[k] = '@';
@@ -76,8 +73,8 @@ int main(int argc, char *argv[]) {
 		// (happens when they are shorter the the longest read)
 		// start writing '#' instead, which indicates blank
 		int dxAlignCounter = readMaxLength;
-		while(dxAlignCounter > 0){
-			if(i > 0 && j > 0){
+		while(dxAlignCounter > 0) {
+			if(i > 0 && j > 0) {
 				toWrite = merge(readOne[i-1], readTwo[j-1]);
 				fputc(toWrite, filePointers[dxAlignCounter-1]);
 				j--;
@@ -89,7 +86,7 @@ int main(int argc, char *argv[]) {
 				j--;
 			}
 			else if(i > 0 && j <= 0) {
-				toWrite = merge(readOne[i], '#');
+				toWrite = merge(readOne[i-1], '#');
 				fputc(toWrite, filePointers[dxAlignCounter-1]);
 				i--;
 			}
@@ -108,32 +105,54 @@ int main(int argc, char *argv[]) {
 	}
 
 	// write the last file (i.e the last column) with all termination characters ($) (with their encoding)
+	// useless since we know that this file is full of $, 
+	//can be optimized by assuming that the nth character of file filePointers[readMaxLength] is always $
 	int sizeSentinels = (linesCounter / 2) + 1;
-	char *sentinels = (char *)malloc(sizeSentinels * sizeof(char));
+	char *sentinels = (char *)malloc(sizeSentinels+1 * sizeof(char));
 	for (int i = 0; i < sizeSentinels; ++i) {
 		if((i == sizeSentinels -1) && (linesCounter % 2 == 1))
-			sentinels[i] = 0x46; // $@
+			sentinels[i] = 0x06; // $@
 		else
-			sentinels[i] = 0x44; // $$
+			sentinels[i] = 0x00; // $$
 	}
+	sentinels[sizeSentinels] = '\0';
 	fputs(sentinels, filePointers[readMaxLength]);
 
 	
-	// Close all streams and free of all memory
-	for (int i = 0; i <= readMaxLength; ++i) {
-		fclose(filePointers[i]); 	
-	}
+	// Close all streams
+	closeStreams(filePointers, readMaxLength, fileIOBuffers);
 
-	// Testing decode
+	partitionSuffixes(filePointers, readMaxLength, linesCounter);
+
+
+	/* Testing decode
 	int readToTest = 2;
-	char *test = decode(filePointers, readMaxLength, readToTest);
+	char *test = decodeRead(filePointers, readMaxLength, readToTest);
 	printf("read[%d]: %s\n", readToTest, test);
 	free(test);
-	// end test
+	*/
 
+	/*Testing interleave decoding (needs to be run with test_interleave.fasta)
+	int encodingArray[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
+	char *interleave = reconstructInterleave(encodingArray, 4, 12, filePointers);
+	printf("interleave: %s\n", interleave);
+	free(interleave);
+	*/
+
+	/* Testing getEncodedColumn
+	char *column = getEncodedColumn(filePointers, 136);
+	FILE *prova = fopen("./tests/prova.txt", "w");
+	int ttemp = linesCounter/2;
+	if(linesCounter % 2)
+		ttemp++;
+	fwrite(column, sizeof(char), ttemp, prova);
+	fclose(prova);
+	free(column);
+	*/
+
+	// free of all memory
 	free(sentinels);
 	free(filePointers);
-	free(filepath);
 	kseq_destroy(seq);
   	gzclose(fp);
 

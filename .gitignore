@@ -29,5 +29,10 @@
 *.app
 
 tests/arrays/
+tests/outputFiles/
+tests/supportFiles/
+tests/supportLists/
+tests/test2.fasta
 bwt_lcp
 decode
+.debris

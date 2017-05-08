@@ -7,20 +7,16 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "streams.h"
+
 char getCode(char base);
 char merge(char first, char second);
 char charToCode(char toDecode);
-char getChars(char toDecode, bool odd);
-char *decode(FILE **filePointers, int readMaxLength, int toDecode); 
+char getChar(char toDecode, bool odd);
+char *decodeRead(FILE **filePointers, int readMaxLength, int toDecode);
+char getCharFromColumn(int index, int column, FILE **filePointers);
+char *getEncodedColumn(FILE **filePointers, int column);
+char *getDecodedColumn(FILE **filePointers, int column);
 
-/*
-A -> 0000
-C -> 0001
-G -> 0010
-T -> 0011
-$ -> 0100
-# -> 0101
-@ -> 0110 -> indicates no information (used when only the first half of the byte is used)
-*/
 
 #endif

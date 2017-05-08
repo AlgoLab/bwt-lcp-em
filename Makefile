@@ -3,15 +3,19 @@ CC = gcc
 CFLAGS = -std=c99 -Wall
 LDFLAGS = -lz -lm
 
-$(P): $(P).c $(P).h kseq.h dictionary.h
-	$(CC) $(CFLAGS) $(P).c dictionary.c -o $(P) $(LDFLAGS)
+$(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
+	$(CC) $(CFLAGS) $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS)
 
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode
+	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode tests/outputFiles/* tests/supportFiles/* tests/supportLists/*
 
 decode: util/decode.c
 	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
 
 test:
 	./$(P) tests/test.fasta
+
+debug: $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
+	$(CC) $(CFLAGS) -g $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS)
+
