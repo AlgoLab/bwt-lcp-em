@@ -28,10 +28,10 @@
 *.out
 *.app
 
-tests/arrays/
-tests/outputFiles/
-tests/supportFiles/
-tests/supportLists/
+tests/arrays/*.txt
+tests/outputFiles/*.txt
+tests/supportFiles/*.txt
+tests/supportLists/*.txt
 tests/test2.fasta
 bwt_lcp
 decode

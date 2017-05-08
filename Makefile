@@ -8,7 +8,7 @@ $(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorit
 
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode tests/outputFiles/* tests/supportFiles/* tests/supportLists/*
+	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode tests/outputFiles/*.txt tests/supportFiles/*.txt tests/supportLists/*.txt
 
 decode: util/decode.c
 	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
