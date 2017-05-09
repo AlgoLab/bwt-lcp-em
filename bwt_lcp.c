@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 	// Close all streams
 	closeStreams(filePointers, readMaxLength, fileIOBuffers);
 
-	partitionSuffixes(filePointers, readMaxLength, linesCounter);
+	computePartialBWT(filePointers, readMaxLength, linesCounter);
 
 
 	/* Testing decode

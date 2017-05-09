@@ -5,30 +5,24 @@
 //	ENCODING
 
 // Given a char, say c, returns a byte in this form: 0000 codeOf(c)
-char getCode(char base){
-	if (base == '$')
-		return 0x00;
+char getCode(char base){	
+	char mask[256];
+	mask[36] = 0x00;	//$
+	mask[65]= 0x01;		//A
+	mask[97] = 0x01;	//a
+	mask[67] = 0x02;	//C
+	mask[99] = 0x02;	//c
+	mask[71] = 0x03;	//G
+	mask[103] = 0x03;	//g
+	mask[84] = 0x04;	//T
+	mask[116] = 0x04;	//t
+	mask[35] = 0x05;	//#
+	mask[64] = 0x06;	//@
+	
+	char res = mask[base];
+	assert(res != 0);	
 
-	else if(base == 'A' || base == 'a')
-		return 0x01;
-
-	else if(base == 'C' || base == 'c')
-		return 0x02;
-
-	else if(base == 'G' || base == 'g')
-		return 0x03;
-
-	else if(base == 'T' || base == 'T')
-		return 0x04;
-
-	else if(base == '#')
-		return 0x05;
-
-	else {
-		//assuming no other char
-		assert(base == '@');
-		return 0x06;
-	}
+	return res;
 }
 
 // Given two encoded char (they only use the lower half of the byte) merge them together in one char
@@ -47,30 +41,9 @@ char merge(char first, char second){
 //	DECODING
 
 char charToCode(char toDecode) {
-	if (toDecode == 0x00)
-		return '$';
+	char mask[7] = {'$', 'A', 'C', 'G', 'T', '#', '@'};
 
-	else if(toDecode == 0x01)
-		return 'A';
-
-	else if(toDecode == 0x02)
-		return 'C';
-
-	else if(toDecode == 0x03)
-		return 'G';
-
-	else if(toDecode == 0x04)
-		return 'T';
-
-	else if(toDecode == 0x05)
-		return '#';
-
-	else {
-		//assuming no other char
-		//printf("%hhx\n", toDecode);
-		assert(toDecode == 0x06);
-		return '@';
-	}		
+	return mask[toDecode];	
 }
 
 char getChar(char toDecode, bool select) {
@@ -123,14 +96,14 @@ char *decodeRead(FILE **filePointers, int readMaxLength, int readToDecode) {
 char getCharFromColumn(int index, int column, FILE **filePointers){
 	// check if column < readmaxlength and if index < linesCounter+
 	// by passing them as parameters?
-	//openStream(filePointers, column, "r", "./tests/arrays/T%d.txt");
+	openStream(filePointers, column, "r", "./tests/arrays/T%d.txt"); // used only with filePointers?
 	int charIndex = index / 2;
 	bool odd = index % 2;
 	fseek(filePointers[column], charIndex, SEEK_SET);
 	char reading = fgetc(filePointers[column]);
 	char decoded = getChar(reading, odd);
-	// Close stream and free memory
-	//fclose(filePointers[column]);
+	// Close stream
+	fclose(filePointers[column]);
 
 	return decoded;
 }

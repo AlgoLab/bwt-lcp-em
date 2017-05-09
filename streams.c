@@ -1,10 +1,12 @@
 #include "streams.h"
-// Opening all file streams in filePointers(columns of the reads) in mode *mode* 
+// Opening all file streams in filePointers(columns of the reads) in mode *mode*
+// The streams will be fully buffered with a buffer of *setvBufferSize* size
+// which the caller shall free after the streams have been closed
 char **openStreams(FILE **filePointers, int amount, char *mode, const char *filepathTemplate) {
 	int sizeFilepath = (int)(ceil(log10(amount))+1);
 	char *filepath = (char *)calloc(sizeFilepath + strlen(filepathTemplate) - 2, sizeof(char));
 
-	int setvBufferSize = 512; // optimize space/time compromise
+	int setvBufferSize = 512; // best value?
 	char **setvBuffers = (char **)malloc((amount + 1) * sizeof(char *));
 	for (int i = 0; i <= amount; ++i) {
 		setvBuffers[i] = (char *)malloc(setvBufferSize * sizeof(char));
@@ -32,6 +34,7 @@ void openStream(FILE **filePointers, int index, char *mode, const char *filepath
 	free(filepath);
 }
 
+// Close all stream and associated buffers
 void closeStreams(FILE **filePointers, int amount, char **setvBuffers) {
 	for (int i = 0; i <= amount; ++i) {
 		fclose(filePointers[i]);

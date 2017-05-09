@@ -5,6 +5,7 @@ char *reconstructInterleave(int *encodingArray, int n, int length, FILE **filePo
 	int *rank = (int *)calloc(n, sizeof(int));
 	char *interleave = (char *)malloc(length+1 * sizeof(char));
 	int i;
+	// accesso random a un file --> deve essere caricato in RAM 
 	for(int q = 0; q < length; q++) {
 		i = encodingArray[q];
 										// index   column
@@ -17,23 +18,26 @@ char *reconstructInterleave(int *encodingArray, int n, int length, FILE **filePo
 }
 
 // Algorithm 2(paper)
-void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
+void computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 	FILE **outputFiles = (FILE **)malloc((readMaxLength+1) * sizeof(FILE *));
 	FILE **supportFiles = (FILE **)malloc((readMaxLength+1) * sizeof(FILE *));
 	FILE **supportLists = (FILE **)malloc(6 * sizeof(FILE *));
 
 	char const *outputFilesTemplate = "./tests/outputFiles/B%d.txt";
 	char const *supportFilesTemplate = "./tests/supportFiles/N%d.txt";
-	char const *supportListsTemplate = "./tests/supportLists/L%d.txt";
+	char const *supportListsTemplate = "./tests/supportLists/P%d.txt";
 
+	//Calculates B0 (copies T0)
 	openStream(filePointers, 0, "rb", "./tests/arrays/T%d.txt");
 	openStream(outputFiles, 0, "wb", outputFilesTemplate);
 	copyFile(filePointers[0], outputFiles[0]);
 	fclose(filePointers[0]);
 	fclose(outputFiles[0]);
 
+	//Calculates N0 -> sequence of natural numbers ending with m (= totLines)
 	createFirstSupportFile(totLines, supportFiles[0], "./tests/supportFiles/N0.txt");
-	// end of "initialization" phase
+	
+	//Iteratively constructs Nl from Nl-1 and Bl-1, then Bl from Nl
 	for (int l = 1; l <= readMaxLength; ++l) {
 		openStream(outputFiles, l-1, "r", outputFilesTemplate);
 		openStream(supportFiles, l-1, "rb", supportFilesTemplate);
@@ -50,7 +54,7 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 		unsigned char secondChar = 0;
 		int numBytes = totLines / 2;
 		int odd = totLines % 2;
-		if(odd)
+		if(odd) // every outpufile will contain in the last 4 bits of the last byte "0x06", code for "@"
 			numBytes++;
 		// now numBytes should be the size of outputfiles[l-1]
 		for (int i = 0; i < numBytes; ++i) {
@@ -65,14 +69,15 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 			if(secondChar != 0x06) {
 				fread(&secondIndex, sizeof(int), 1, supportFiles[l-1]);
 				fwrite(&secondIndex, sizeof(int), 1, supportLists[secondChar]);
-
 			}
 
 		}
-		// works until here
+
 		for (int i = 0; i < 6; ++i)
 			fflush(supportLists[i]);
 
+		//Can be optimized by not copying the files and when reading Nl sequentially(next "for" cycle)
+		//A pointer points to this files and at the end of one just jumps to the next
 		for (int i = 0; i < 6; ++i)
 			copyFile(supportLists[i], supportFiles[l]);
 
@@ -90,7 +95,6 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 		int adjIndex = 0;
 		int oddIndex = 0;
 		char toWrite = 0;
-		//problema: chiocciola
 		for (int i = 0; i < numBytes; ++i) {
 			fread(&index, sizeof(int), 1, supportFiles[l]);
 			adjIndex = index / 2;
@@ -100,8 +104,6 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 			else
 				toWrite = fpl[adjIndex] >> 4;
 
-			if(toWrite == 0x06)
-				printf("chiocciola\n");
 			toWrite = toWrite << 4;
 
 			if(i == numBytes-1 && odd) {
@@ -116,9 +118,7 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 					toWrite |= fpl[adjIndex] & 0x0f;
 				else
 					toWrite |= fpl[adjIndex] >> 4;
-
-				if((toWrite & 0xf) == 0x06)
-					printf("chiocciola\n");				
+		
 			}
 
 			fputc(toWrite, outputFiles[l]);
@@ -139,11 +139,11 @@ void partitionSuffixes(FILE **filePointers, int readMaxLength, int totLines) {
 
 }
 
-//used only once
-// Creates a file containing 0 1 2 3 ... totlines-1; stored as int (4 bytes)
+
+//Creates a file containing the sequence of natural numbers ending with "totLines"
 void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePath) {
 	firstSupport = fopen(filePath, "wb");
-	int bufferSize = 1024;
+	int bufferSize = 1024; // best value?
 
 	int writeCycles = totLines / bufferSize;
 	int lastBufferSize = totLines % bufferSize;
@@ -173,8 +173,9 @@ void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePa
 	fclose(firstSupport);
 }
 
-// Caller must open/close origin and destination streams
+
 // Copies the whole content of file origin into file destination
+// Caller must open/close origin and destination streams
 void copyFile(FILE *origin, FILE *destination) {
 	fseek(origin, 0, SEEK_END);
 	int fileSize = ftell(origin);
@@ -183,7 +184,7 @@ void copyFile(FILE *origin, FILE *destination) {
 	if(fileSize == 0)
 		return;
 
-	int bufferSize = 512;
+	int bufferSize = 1024; // best value?
 	int writeCycles = fileSize / bufferSize;
 	int lastBufferSize = fileSize % bufferSize;
 

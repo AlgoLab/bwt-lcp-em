@@ -1,6 +1,6 @@
 P = bwt_lcp
 CC = gcc
-CFLAGS = -std=c99 -Wall
+CFLAGS = -std=c99 -Wall -Wno-char-subscripts
 LDFLAGS = -lz -lm
 
 $(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
