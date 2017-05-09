@@ -76,23 +76,23 @@ int main(int argc, char *argv[]) {
 		while(dxAlignCounter > 0) {
 			if(i > 0 && j > 0) {
 				toWrite = merge(readOne[i-1], readTwo[j-1]);
-				fputc(toWrite, filePointers[dxAlignCounter-1]);
+				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
 				j--;
 				i--;
 			}
 			else if(i <= 0 && j > 0) {
 				toWrite = merge('#', readTwo[j-1]);
-				fputc(toWrite, filePointers[dxAlignCounter-1]);
+				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
 				j--;
 			}
 			else if(i > 0 && j <= 0) {
 				toWrite = merge(readOne[i-1], '#');
-				fputc(toWrite, filePointers[dxAlignCounter-1]);
+				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
 				i--;
 			}
 			else {
-				toWrite = 0x55; // toWrite encodes -> ##
-				fputc(toWrite, filePointers[dxAlignCounter-1]);
+				toWrite = 0x55; // encodes -> ##
+				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
 			}
 
 			dxAlignCounter--;			
