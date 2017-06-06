@@ -65,12 +65,12 @@ char getChar(char toDecode, bool select) {
 // readToDecode starts from 0, assuming is correct (i.e > 0 and < maxRead)
 char *decodeRead(FILE **filePointers, int readMaxLength, int readToDecode) {
 	// Opening all streams in "read-only" mode
-	char **fileIOBuffers = openStreams(filePointers, readMaxLength, "r", "./tests/arrays/T%d.txt");
+	openStreams(filePointers, readMaxLength, "r", "./tests/arrays/T%d");
 
 	// could be more efficient by storing the 
 	// size of each read in an array and passing
 	// it as a parameter	
-	char *read = (char *)malloc(readMaxLength+2 * sizeof(char));
+	char *read = malloc(readMaxLength+2 * sizeof(char));
 	int charIndex = (readToDecode / 2);
 	bool odd = readToDecode % 2; // 0 if even, 1 if odd
 	int readCounter = 0;
@@ -87,7 +87,7 @@ char *decodeRead(FILE **filePointers, int readMaxLength, int readToDecode) {
 	read = realloc(read, readCounter * sizeof(char));
 
 	// Close all streams
-	closeStreams(filePointers, readMaxLength, fileIOBuffers);
+	closeStreams(filePointers, readMaxLength);
 
 	return read;
 
@@ -96,7 +96,7 @@ char *decodeRead(FILE **filePointers, int readMaxLength, int readToDecode) {
 char getCharFromColumn(int index, int column, FILE **filePointers){
 	// check if column < readmaxlength and if index < linesCounter+
 	// by passing them as parameters?
-	openStream(filePointers, column, "r", "./tests/arrays/T%d.txt"); // used only with filePointers?
+	openStream(filePointers, column, "r", "./tests/arrays/T%d"); // used only with filePointers?
 	int charIndex = index / 2;
 	bool odd = index % 2;
 	fseek(filePointers[column], charIndex, SEEK_SET);
@@ -113,7 +113,7 @@ char *getEncodedColumn(FILE **filePointers, int column) {
 	fseek(filePointers[column], 0l, SEEK_END);
 	int fileSize = ftell(filePointers[column]);
 	rewind(filePointers[column]);
-	char *encodedColumn = (char *)malloc(fileSize+1 * sizeof(char));
+	char *encodedColumn = malloc(fileSize+1 * sizeof(char));
 	encodedColumn = fgets(encodedColumn, fileSize+1, filePointers[column]);
 	//check if != null
 	return encodedColumn;
@@ -121,7 +121,7 @@ char *getEncodedColumn(FILE **filePointers, int column) {
 
 char *getDecodedColumn(FILE **filePointers, int column) {
 	char *encodedColumn = getEncodedColumn(filePointers, column);
-	char *decodedColumn = (char *)malloc(((strlen(encodedColumn) * 2) + 1) * sizeof(char));
+	char *decodedColumn = malloc(((strlen(encodedColumn) * 2) + 1) * sizeof(char));
 	
 	int j = 0;
 	for (int i = 0; i < strlen(encodedColumn); ++i) {

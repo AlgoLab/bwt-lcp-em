@@ -21,18 +21,17 @@ int main(int argc, char *argv[]) {
 	int readMaxLength = 0;
 	int l;
 
-	// Calculate the length of the longest read (used mostly to know how many stream need to be opened)
+	// Calculate the length of the longest read
 	while((l = kseq_read(seq)) >= 0) {
 		if(l > readMaxLength)
 			readMaxLength = l;
 	}
 
-
 	// Array with pointers to all files
-	FILE **filePointers = (FILE **)malloc((readMaxLength+1) * sizeof(FILE *));
+	FILE **filePointers = malloc((readMaxLength+1) * sizeof(FILE *));
 
 	// Opening all streams in "write-only" mode
-	char **fileIOBuffers = openStreams(filePointers, readMaxLength, "w", "./tests/arrays/T%d.txt");
+	openStreams(filePointers, readMaxLength, "w", "./tests/arrays/T%d");
 
 	// Return the position indicator at the beginning of the file
 	kseq_rewind(seq);
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
 	while((i = kseq_read(seq)) >= 0) {
 		// Read 2 reads each time
 		// (+1 for null terminator)
-		readOne = (char *)malloc((i+1) * sizeof(char));
+		readOne = malloc((i+1) * sizeof(char));
 		strcpy(readOne, seq -> seq.s);
 		j = kseq_read(seq);
 		// If the second read doesn't exist the file has an odd number of lines
@@ -57,7 +56,7 @@ int main(int argc, char *argv[]) {
 		// and the lower half will be the code of '@', the character that indicates no information
 		if(j < 0) { 
 
-			readTwo = (char *)malloc(readMaxLength * sizeof(char));
+			readTwo = malloc(readMaxLength * sizeof(char));
 			for (int k = 0; k < readMaxLength; ++k) {
 				readTwo[k] = '@';
 			}
@@ -108,21 +107,23 @@ int main(int argc, char *argv[]) {
 	// useless since we know that this file is full of $, 
 	//can be optimized by assuming that the nth character of file filePointers[readMaxLength] is always $
 	int sizeSentinels = (linesCounter / 2) + 1;
-	char *sentinels = (char *)malloc(sizeSentinels+1 * sizeof(char));
+	char *sentinels = malloc(sizeSentinels * sizeof(char));
 	for (int i = 0; i < sizeSentinels; ++i) {
 		if((i == sizeSentinels -1) && (linesCounter % 2 == 1))
 			sentinels[i] = 0x06; // $@
 		else
 			sentinels[i] = 0x00; // $$
 	}
-	sentinels[sizeSentinels] = '\0';
-	fputs(sentinels, filePointers[readMaxLength]);
+	fwrite(sentinels, sizeof(char), sizeSentinels, filePointers[readMaxLength]);
+	free(sentinels);
 
 	
 	// Close all streams
-	closeStreams(filePointers, readMaxLength, fileIOBuffers);
+	closeStreams(filePointers, readMaxLength);
 
-	computePartialBWT(filePointers, readMaxLength, linesCounter);
+	FILE **partialBWT = computePartialBWT(filePointers, readMaxLength, linesCounter);
+
+	computeBWTLCP(partialBWT, readMaxLength, linesCounter);
 
 
 	/* Testing decode
@@ -132,16 +133,20 @@ int main(int argc, char *argv[]) {
 	free(test);
 	*/
 
-	/*Testing interleave decoding (needs to be run with test_interleave.fasta)
-	int encodingArray[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
-	char *interleave = reconstructInterleave(encodingArray, 4, 12, filePointers);
-	printf("interleave: %s\n", interleave);
-	free(interleave);
-	*/
+	/*
+  	FILE *bwtEncoding = fopen("bwtEncoding", "wb");
+  	int enc[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
+
+  	fwrite(enc, sizeof(int), 12, bwtEncoding);
+  	fclose(bwtEncoding);
+  	bwtEncoding = fopen("bwtEncoding", "rb");
+  	reconstructInterleave(bwtEncoding, 4, 12, filePointers);	
+  	fclose(bwtEncoding);
+  	*/
 
 	/* Testing getEncodedColumn
 	char *column = getEncodedColumn(filePointers, 136);
-	FILE *prova = fopen("./tests/prova.txt", "w");
+	FILE *prova = fopen("./tests/prova", "w");
 	int ttemp = linesCounter/2;
 	if(linesCounter % 2)
 		ttemp++;
@@ -151,7 +156,6 @@ int main(int argc, char *argv[]) {
 	*/
 
 	// free of all memory
-	free(sentinels);
 	free(filePointers);
 	kseq_destroy(seq);
   	gzclose(fp);

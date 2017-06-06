@@ -28,11 +28,16 @@
 *.out
 *.app
 
-tests/arrays/*.txt
-tests/outputFiles/*.txt
-tests/supportFiles/*.txt
-tests/supportLists/*.txt
+tests/arrays/*
+tests/outputFiles/*
+tests/supportFiles/*
+tests/supportLists/*
+tests/BWT/*
+tests/LCP/*
+tests/supportBWT/*
+tests/supportLCP/*
 tests/test2.fasta
+tests/B_W_T
 bwt_lcp
 decode
 .debris
