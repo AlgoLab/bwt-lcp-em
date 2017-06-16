@@ -206,11 +206,12 @@ void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePa
 // Copies the whole content of file origin into file destination
 // Caller must open/close origin and destination streams
 void copyFile(FILE *origin, FILE *destination) {
+	//Calculate file size (Bytes)
 	fseek(origin, 0, SEEK_END);
 	int fileSize = ftell(origin);
 	rewind(origin);
 
-	if(fileSize == 0)
+	if(!fileSize)
 		return;
 
 	int bufferSize = 1024; // best value?
