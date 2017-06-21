@@ -25,7 +25,7 @@ FILE *reconstructInterleave(FILE *encodingArray, int readMaxLength, int encoding
 		if(c == 0x05) //eliminates # in the bwt
 			continue;
 
-		//printf("%c ", charToCode(c));
+		printf("%c ", charToCode(c));
 
 		if(toWrite == -1)
 			toWrite = c << 4;
@@ -271,21 +271,21 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 
 	FILE **supportLCP = malloc(6 * sizeof(FILE *));
 	FILE **supportBWT = malloc(6 * sizeof(FILE *));
-	FILE **lcp = malloc(readMaxLength * 2 * sizeof(FILE *)); // how much memory to allocate???? per ora 220 max
-	FILE **bwt = malloc(readMaxLength * 2 * sizeof(FILE *)); // ^
+	FILE *lcp;
+	FILE *bwt;
 
 	const char *supportLCPTemplate = "./tests/supportLCP/L%d";
 	const char *supportBWTTemplate = "./tests/supportBWT/I%d";
-	const char *lcpTemplate = "./tests/LCP/LCP%d";
-	const char *bwtTemplate = "./tests/BWT/BWT%d";
+	const char *lcpTemplate = "./tests/LCP/LCP";
+	const char *bwtTemplate = "./tests/BWT/BWT";
 
-	openStream(lcp, 0, "wb", lcpTemplate);
-	openStream(bwt, 0, "wb", bwtTemplate);
+	lcp = fopen(lcpTemplate, "wb");
+	bwt = fopen(bwtTemplate, "wb");
 	openStream(supportBWT, 0, "wb", supportBWTTemplate);
 	openStream(supportLCP, 0, "wb", supportLCPTemplate);
-	createStartingFiles(readMaxLength, totLines, lcp[0], bwt[0], supportBWT[0], supportLCP[0]);
-	fclose(lcp[0]);
-	fclose(bwt[0]);
+	createStartingFiles(readMaxLength, totLines, lcp, bwt, supportBWT[0], supportLCP[0]);
+	fclose(lcp);
+	fclose(bwt);
 	fclose(supportBWT[0]);
 	fclose(supportLCP[0]);
 	//not closing supportBWT[0] and supportLCP[0], will be done together with others supportBWT elements
@@ -293,10 +293,12 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 	int maxLCP = 0;
 	int p = 0;
 	while(maxLCP == p) {
+		//printf("%d\n", p);
 		int s = 0;
 		for (int i = 1; i < 6; ++i) {
 			openStream(supportLCP, i, "wb", supportLCPTemplate);
-			fwrite(&s, sizeof(int), 1, supportLCP[i]);
+			if(i != 5)
+				fwrite(&s, sizeof(int), 1, supportLCP[i]);
 		}
 		// should be of size 5 but because of how the alfabet is encoded 
 		// it's useful to use the 5 index from 1 to 5 and ignore the first one (0);
@@ -314,10 +316,10 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 		openStreams(partialBWT, readMaxLength, "r", "./tests/outputFiles/B%d");
 		for (int i = 1; i < 6; ++i)
 			openStream(supportBWT, i, "wb", supportBWTTemplate);
-		openStream(bwt, p, "rb", bwtTemplate);
-		openStream(lcp, p, "rb", lcpTemplate);
+		bwt = fopen(bwtTemplate, "rb");
+		lcp = fopen(lcpTemplate, "rb");
 		for (int i = 0; i < (readMaxLength + 1) * totLines; ++i) {
-			fread(&l, sizeof(int), 1, bwt[p]);
+			fread(&l, sizeof(int), 1, bwt);
 			if(supportBuffer[l] == -1) {
 				c = fgetc(partialBWT[l]);
 				supportBuffer[l] = c & 0x0f;
@@ -337,12 +339,12 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 				fwrite(&l, sizeof(int), 1, supportBWT[c]);
 			}
 
-			fread(&lcpValue, sizeof(int), 1, lcp[p]);
+			fread(&lcpValue, sizeof(int), 1, lcp);
 			for (int i = 1; i < 6; ++i) {
 				alfa[i] = min(alfa[i], lcpValue);
 			}
 
-			if(decoded != '$' && alfa[c] >= 0) {
+			if(decoded != '$' && decoded != '#' && alfa[c] >= 0) {
 				int a = alfa[c] + 1;
 				if(a > maxLCP)
 					maxLCP = a;
@@ -358,33 +360,30 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 			fclose(supportBWT[i]);
 		for (int i = 1; i < 6; ++i)
 			fclose(supportLCP[i]);
-		fclose(bwt[p]);
-		fclose(lcp[p]);
+		fclose(bwt);
+		fclose(lcp);
 		closeStreams(partialBWT, readMaxLength);
 
 
 		
-		openStream(bwt, p+1, "wb", bwtTemplate);
-		openStream(lcp, p+1, "wb", lcpTemplate);
+		bwt = fopen(bwtTemplate, "wb");
+		lcp = fopen(lcpTemplate, "wb");
 		openStreams(supportBWT, 5, "rb", supportBWTTemplate);
 		openStreams(supportLCP, 5, "rb", supportLCPTemplate);
 		for (int i = 0; i < 6; ++i) {
-			copyFile(supportBWT[i], bwt[p+1]);
-			copyFile(supportLCP[i], lcp[p+1]);
+			copyFile(supportBWT[i], bwt);
+			copyFile(supportLCP[i], lcp);
 		}
-		fclose(lcp[p+1]);
-		fclose(bwt[p+1]);
+		fclose(lcp);
+		fclose(bwt);
 		closeStreams(supportLCP, 5);
 		closeStreams(supportBWT, 5);
 		free(supportBuffer);
 		p++;
-
 	}
-	openStream(bwt, p, "rb", bwtTemplate);
-	reconstructInterleave(bwt[p], readMaxLength, (readMaxLength + 1) * totLines, partialBWT);
-	fclose(bwt[p]);
-	free(lcp);
-	free(bwt);
+	bwt = fopen(bwtTemplate, "rb");
+	reconstructInterleave(bwt, readMaxLength, (readMaxLength + 1) * totLines, partialBWT);
+	fclose(bwt);
 	free(supportBWT);
 	free(supportLCP);
 	free(partialBWT);
