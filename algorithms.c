@@ -25,10 +25,16 @@ FILE *reconstructInterleave(FILE *encodingArray, int readMaxLength, int encoding
 		if(c == 0x05) //eliminates # in the bwt
 			continue;
 
-		printf("%c ", charToCode(c));
+		//printf("%c ", charToCode(c));
 
-		if(toWrite == -1)
+		if(toWrite == -1){
 			toWrite = c << 4;
+			if(q == encodingLength-1){
+				toWrite |= 0x06;
+				fputc(toWrite, bwt);
+			}
+
+		}
 		else {
 			toWrite |= c;
 			fputc(toWrite, bwt);
