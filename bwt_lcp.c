@@ -106,7 +106,9 @@ int main(int argc, char *argv[]) {
 	// write the last file (i.e the last column) with all termination characters ($) (with their encoding)
 	// useless since we know that this file is full of $, 
 	//can be optimized by assuming that the nth character of file filePointers[readMaxLength] is always $
-	int sizeSentinels = (linesCounter / 2) + 1;
+	int sizeSentinels = (linesCounter / 2);
+	if(linesCounter % 2)
+		sizeSentinels++;
 	char *sentinels = malloc(sizeSentinels * sizeof(char));
 	for (int i = 0; i < sizeSentinels; ++i) {
 		if((i == sizeSentinels -1) && (linesCounter % 2 == 1))

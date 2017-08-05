@@ -8,6 +8,8 @@
 // So, the default value should be 4096 can be forcefully changed with setvbuffer function
 void openStreams(FILE **filePointers, int amount, char *mode, const char *filepathTemplate) {
 	int sizeFilepath = (int)(ceil(log10(amount))+1);
+	if(amount % 10 == 0 && amount > 10)
+		sizeFilepath++;
 	char *filepath = calloc(sizeFilepath + strlen(filepathTemplate) - 2, sizeof(char));
 
 	/*

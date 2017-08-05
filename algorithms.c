@@ -1,7 +1,7 @@
 #include "algorithms.h"
 
 // Algorithm 1 (paper) 
-FILE *reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingLength, FILE **partialBWT) {
+void reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingLength, FILE **partialBWT) {
 	FILE *bwt = fopen("./tests/B_W_T", "w");
 	int i;
 	openStreams(partialBWT, readMaxLength, "r", "./tests/outputFiles/B%d");
@@ -46,7 +46,7 @@ FILE *reconstructInterleave(FILE *encodingArray, int readMaxLength, int encoding
 	}
 	closeStreams(partialBWT, readMaxLength);
 	free(supportBuffer);
-	return bwt;
+	fclose(bwt);
 }
 
 // Algorithm 2(paper)

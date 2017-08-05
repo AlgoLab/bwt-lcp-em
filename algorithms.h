@@ -9,7 +9,7 @@
 #include "streams.h"
 
 
-FILE *reconstructInterleave(FILE *encodingArray, int n, int length, FILE **partialBWT);
+void reconstructInterleave(FILE *encodingArray, int n, int length, FILE **partialBWT);
 FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines);
 void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePath);
 void copyFile(FILE *origin, FILE *destination);

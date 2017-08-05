@@ -8,10 +8,13 @@ $(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorit
 
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode tests/arrays/* tests/outputFiles/* tests/supportFiles/* tests/supportLists/* tests/BWT/* tests/LCP/* tests/supportBWT/* tests/supportLCP/* tests/B_W_T
+	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode_bwt decode_lcp tests/arrays/* tests/outputFiles/* tests/supportFiles/* tests/supportLists/* tests/BWT/* tests/LCP/* tests/supportBWT/* tests/supportLCP/* tests/B_W_T
 
-decode: util/decode.c
-	$(CC) $(CFLAGS) util/decode.c -o decode $(LDFLAGS)
+decode_bwt: util/decode_bwt.c
+	$(CC) $(CFLAGS) util/decode_bwt.c -o decode_bwt $(LDFLAGS)
+
+decode_lcp: util/decode_lcp.c
+	$(CC) $(CFLAGS) util/decode_lcp.c -o decode_lcp $(LDFLAGS)	
 
 test:
 	./$(P) tests/uploaded_test.fasta
