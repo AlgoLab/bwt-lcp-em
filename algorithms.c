@@ -188,7 +188,7 @@ void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePa
 
 	for(int i = 1; i <= writeCycles; i++) {
 		for(int j = 0; j < bufferSize; j++) {
-			buffer[j] = i * j;
+			buffer[j] = j + ((i-1) * bufferSize);
 		}
 		fwrite(buffer, sizeof(int), bufferSize, firstSupport);
 	}
