@@ -1,0 +1,12 @@
+# for converting srf to fasta format
+#----------------------------------------------------------------------
+#
+rule master :
+	input :
+		# desired targets, i.e., fasta files
+
+# perform the conversion
+rule convert :
+	input : '{pattern}.srf'
+	output : '{pattern}.fasta'
+	shell : 'srf2fasta {input} > {output}
