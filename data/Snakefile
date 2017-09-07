@@ -2,11 +2,10 @@
 #----------------------------------------------------------------------
 #
 rule master :
-	input :
-		# desired targets, i.e., fasta files
+	input : '100401_EAS51_0210_FC6142HAAXX-1.fasta'
 
 # perform the conversion
 rule convert :
 	input : '{pattern}.srf'
 	output : '{pattern}.fasta'
-	shell : 'srf2fasta {input} > {output}
+	shell : 'srf2fasta {input} > {output}'
