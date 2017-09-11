@@ -102,7 +102,8 @@ int main(int argc, char *argv[]) {
 			free(readTwo);
 
 	}
-
+	printf("longest read length = %d\n", readMaxLength);
+	printf("number of reads = %d\n", linesCounter);
 	// write the last file (i.e the last column) with all termination characters ($) (with their encoding)
 	// useless since we know that this file is full of $, 
 	//can be optimized by assuming that the nth character of file filePointers[readMaxLength] is always $
@@ -123,8 +124,10 @@ int main(int argc, char *argv[]) {
 	// Close all streams
 	closeStreams(filePointers, readMaxLength);
 
+	printf("Computing partial BWT\n");
 	FILE **partialBWT = computePartialBWT(filePointers, readMaxLength, linesCounter);
 
+	printf("Computing BWT and LCP\n");
 	computeBWTLCP(partialBWT, readMaxLength, linesCounter);
 
 

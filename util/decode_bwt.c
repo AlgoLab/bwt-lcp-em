@@ -27,7 +27,8 @@ int main(int argc, char **argv) {
       c1 = codeToChar((c >> 4));
       c2 = codeToChar((c & 0b1111));
       printf("%c", c1);
-      printf("%c", c2);
+      if(c2 != '@')
+        printf("%c", c2);
     }
   }
   fclose(pFile);

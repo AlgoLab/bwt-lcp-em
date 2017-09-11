@@ -299,7 +299,7 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 	int maxLCP = 0;
 	int p = 0;
 	while(maxLCP == p) {
-		//printf("%d\n", p);
+		printf("Starting iteration n° %d\n", p);
 		int s = 0;
 		for (int i = 1; i < 6; ++i) {
 			openStream(supportLCP, i, "wb", supportLCPTemplate);
