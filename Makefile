@@ -3,6 +3,8 @@ CC = gcc
 CFLAGS = -std=c99 -Wall -Wno-char-subscripts -O3
 LDFLAGS = -lz -lm
 
+bin: $(P) decode_bwt decode_lcp
+
 $(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
 	$(CC) $(CFLAGS) $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS) && mkdir -p tests/arrays tests/outputFiles tests/supportFiles tests/supportLists tests/BWT tests/LCP tests/supportBWT tests/supportLCP
 
