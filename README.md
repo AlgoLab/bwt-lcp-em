@@ -4,6 +4,8 @@
 
 Describe input output.
 
+Prerequisites. How to compile.
+
 Sample invokation
 
 Test instances
