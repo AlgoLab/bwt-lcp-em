@@ -5,60 +5,50 @@
 //	ENCODING
 
 // Given a char, say c, returns a byte in this form: 0000 codeOf(c)
-char getCode(char base){	
-	char mask[256];
-	mask[36] = 0x00;	//$
-	mask[65]= 0x01;		//A
-	mask[97] = 0x01;	//a
-	mask[67] = 0x02;	//C
-	mask[99] = 0x02;	//c
-	mask[71] = 0x03;	//G
-	mask[103] = 0x03;	//g
-	mask[84] = 0x04;	//T
-	mask[116] = 0x04;	//t
-	mask[35] = 0x05;	//#
-	mask[64] = 0x06;	//@
-	
-	char res = mask[base];
-	assert(res != 0);	
-
-	return res;
+static const char encode_mask[256] = {
+  /*   0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  16 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  32 */ 0, 0, 0, 0x05, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  48 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  64 */ 0x06, 0x01, 0, 0x02, 0, 0, 0, 0x03, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  80 */ 0, 0, 0, 0, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /*  96 */ 0, 0x01, 0, 0x02, 0, 0, 0, 0x03, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 112 */ 0, 0, 0, 0, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 128 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 144 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 160 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 176 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 192 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 208 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 224 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  /* 240 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+char getCode(char base){
+	return encode_mask[base];
 }
 
 // Given two encoded char (they only use the lower half of the byte) merge them together in one char
 // so that the first "code" is in the upper half of the byte and the second in the lower half.
 char merge(char first, char second){
-	char res;
-	first = getCode(first);
-	second = getCode(second);
+	first = encode_mask[first];
+	second = encode_mask[second];
 
 	first = first << 4;
-	res = first | second;
-	return res;	
-
+	return first | second;
 }
 
 //	DECODING
-
+static const char decode_mask[7] = {'$', 'A', 'C', 'G', 'T', '#', '@'};
 char charToCode(char toDecode) {
-	char mask[7] = {'$', 'A', 'C', 'G', 'T', '#', '@'};
-
-	return mask[toDecode];	
+	return decode_mask[toDecode];
 }
 
 char getChar(char toDecode, bool select) {
-	char first = toDecode & 0xF0; // first AND 1111 0000
-	first = first >> 4;
-	char second = toDecode & 0x0F; // first AND 0000 1111
-
-	first = charToCode(first);
-	second = charToCode(second);
-	if(select)
-		return second;
-	else
-		return first;
-
-
+  if (select) {
+    return decode_mask[toDecode & 0x0F];
+  } else {
+    return decode_mask[(char)((toDecode & 0xF0) >> 4)];
+  }
 }
 
 
@@ -121,20 +111,21 @@ char *getEncodedColumn(FILE **filePointers, int column) {
 
 char *getDecodedColumn(FILE **filePointers, int column) {
 	char *encodedColumn = getEncodedColumn(filePointers, column);
-	char *decodedColumn = malloc(((strlen(encodedColumn) * 2) + 1) * sizeof(char));
+  size_t strlen_encodedColumn = strlen(encodedColumn);
+	char *decodedColumn = malloc(((strlen_encodedColumn * 2) + 1) * sizeof(char));
 	
 	int j = 0;
-	for (int i = 0; i < strlen(encodedColumn); ++i) {
+	for (int i = 0; i < strlen_encodedColumn; ++i) {
 		decodedColumn[j] = getChar(encodedColumn[i], 0);
 		++j;
 		decodedColumn[j] = getChar(encodedColumn[i], 1);
 		++j;
 	}
 
-	if(decodedColumn[(strlen(encodedColumn) * 2) - 1] == '@')
-		decodedColumn[(strlen(encodedColumn) * 2) - 1] = '\0';
+	if(decodedColumn[(strlen_encodedColumn * 2) - 1] == '@')
+		decodedColumn[(strlen_encodedColumn * 2) - 1] = '\0';
 	else
-		decodedColumn[(strlen(encodedColumn) * 2)] = '\0';
+		decodedColumn[(strlen_encodedColumn * 2)] = '\0';
 
 	free(encodedColumn);
 	
