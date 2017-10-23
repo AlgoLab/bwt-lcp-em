@@ -39,5 +39,7 @@ tests/supportLCP/*
 tests/test2.fasta
 tests/B_W_T
 bwt_lcp
-decode
+decode_bwt
+decode_lcp
+*.debug
 .debris

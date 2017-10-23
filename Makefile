@@ -1,26 +1,46 @@
 P = bwt_lcp
 CC = gcc
-CFLAGS = -std=c99 -Wall -Wno-char-subscripts -O3
+CFLAGS = -std=c99 -Wall -Wno-char-subscripts -O2 -DNDEBUG
+CFLAGS_DEBUG = $(CFLAGS) -UNDEBUG -O0 -g3
 LDFLAGS = -lz -lm
 
-bin: $(P) decode_bwt decode_lcp
+SUBDIRS := $(addprefix tests/, arrays outputFiles supportFiles supportLists BWT LCP supportBWT supportLCP)
 
-$(P): $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
-	$(CC) $(CFLAGS) $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS) && mkdir -p tests/arrays tests/outputFiles tests/supportFiles tests/supportLists tests/BWT tests/LCP tests/supportBWT tests/supportLCP
+TEST_INPUT := tests/test.fasta.gz
 
+.PHONY: bin
+bin: subdirs bwt_lcp decode_bwt decode_lcp
+
+.PHONY: subdirs
+subdirs: $(SUBDIRS)
+
+# General rule for building the executables
+%: %.c
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+# Additional requirements for bwt_lcp
+bwt_lcp: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
+
+$(SUBDIRS):
+	mkdir -p $@
+
+.PHONY: clean
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe $(P) tests/arrays/* decode_bwt decode_lcp tests/arrays/* tests/outputFiles/* tests/supportFiles/* tests/supportLists/* tests/BWT/* tests/LCP/* tests/supportBWT/* tests/supportLCP/* tests/B_W_T
+	rm -rf *.o *.out *.exe *.debug bwt_lcp decode_bwt decode_lcp $(SUBDIRS) tests/B_W_T
 
-decode_bwt: util/decode_bwt.c
-	$(CC) $(CFLAGS) util/decode_bwt.c -o decode_bwt $(LDFLAGS)
+.PHONY: test
+test: clean bin
+	@echo "Starting test on file $(TEST_INPUT) (no output)" && \
+	time -p ./bwt_lcp $(TEST_INPUT) > .log 2> .time && \
+	diff .log $(TEST_INPUT).log; \
+	diff -y .time $(TEST_INPUT).time; \
+	rm -rf .log .time; \
+	md5sum -c $(TEST_INPUT).sums
 
-decode_lcp: util/decode_lcp.c
-	$(CC) $(CFLAGS) util/decode_lcp.c -o decode_lcp $(LDFLAGS)	
+%.debug: %.c
+	$(CC) $(CFLAGS_DEBUG) $^ -o $@ $(LDFLAGS)
 
-test:
-	./$(P) tests/uploaded_test.fasta
+bwt_lcp.debug: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
 
-debug: $(P).c $(P).h kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
-	$(CC) $(CFLAGS) -g $(P).c dictionary.c streams.c algorithms.c -o $(P) $(LDFLAGS) && mkdir -p tests/arrays tests/outputFiles tests/supportFiles tests/supportLists tests/BWT tests/LCP tests/supportBWT tests/supportLCP
-
+.PHONY: debug
+debug: subdirs bwt_lcp.debug decode_bwt.debug decode_lcp.debug

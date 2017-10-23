@@ -1,4 +1,11 @@
-#include "bwt_lcp.h"
+#include <zlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include "kseq.h"
+#include "algorithms.h"
+#include "dictionary.h"
+#include "streams.h"
 
 
 
