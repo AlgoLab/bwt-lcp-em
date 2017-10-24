@@ -1,6 +1,6 @@
 P = bwt_lcp
 CC = gcc
-CFLAGS = -std=c99 -Wall -Wno-char-subscripts -O2 -DNDEBUG
+CFLAGS = -std=c99 -Wall -Wno-char-subscripts -Wno-unused-result -O2 -DNDEBUG -D_GNU_SOURCE
 CFLAGS_DEBUG = $(CFLAGS) -UNDEBUG -O0 -g3
 LDFLAGS = -lz -lm
 

@@ -1,6 +1,6 @@
 #include "algorithms.h"
 
-// Algorithm 1 (paper) 
+// Algorithm 1 (paper)
 void reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingLength, FILE **partialBWT) {
 	FILE *bwt = fopen("./tests/B_W_T", "w");
 	int i;
@@ -49,36 +49,57 @@ void reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingL
 	fclose(bwt);
 }
 
+#define outputFilesTemplate "./tests/outputFiles/B%d"
+#define supportListsTemplate "./tests/supportLists/P%d"
+#define T_TPL "./tests/arrays/T%d"
+#define B_TPL outputFilesTemplate
+#define P_TPL(l) ((l) % 2 == 0) ? "./tests/supportLists/Peven_%d" : "./tests/supportLists/Podd_%d"
+
+//Creates a file containing the sequence of natural numbers ending with "totLines"
+void createFirstSupportFile(int totLines, FILE *firstSupport) {
+	size_t bufferSize = 1024; // best value?
+
+	int *buffer = malloc(bufferSize * sizeof(int));
+
+  size_t i = 0;
+  while (i < totLines) {
+    size_t j = 0;
+		while (j < bufferSize && i < totLines) {
+			buffer[j] = i;
+      ++i;
+      ++j;
+		}
+		fwrite(buffer, sizeof(int), j, firstSupport);
+  }
+	free(buffer);
+}
+
 // Algorithm 2(paper)
 FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 	FILE **outputFiles = malloc((readMaxLength+1) * sizeof(FILE *));
-	FILE **supportFiles = malloc((readMaxLength+1) * sizeof(FILE *));
-	FILE **supportLists = malloc(6 * sizeof(FILE *));
+	streams_t supportLists;
+	streams_t supportLists_prev;
 
-	char const *outputFilesTemplate = "./tests/outputFiles/B%d";
-	char const *supportFilesTemplate = "./tests/supportFiles/N%d";
-	char const *supportListsTemplate = "./tests/supportLists/P%d";
 
 	//Calculates B0 (copies T0)
-	openStream(filePointers, 0, "rb", "./tests/arrays/T%d");
-	openStream(outputFiles, 0, "wb", outputFilesTemplate);
+	openStream(filePointers, 0, "rb", T_TPL);
+	openStream(outputFiles, 0, "wb", B_TPL);
 	copyFile(filePointers[0], outputFiles[0]);
 	fclose(filePointers[0]);
 	fclose(outputFiles[0]);
 
 	//Calculates N0 -> sequence of natural numbers ending with m (= totLines)
-	createFirstSupportFile(totLines, supportFiles[0], "./tests/supportFiles/N0");
-	
+  openStreams2(&supportLists_prev, 6, "w", P_TPL(0));
+	createFirstSupportFile(totLines, supportLists_prev.f[0]);
+  closeStreams2(&supportLists_prev);
+
 	//Iteratively constructs Nl from Nl-1 and Bl-1, then Bl from Nl
 	for (int l = 1; l <= readMaxLength; ++l) {
-		openStream(outputFiles, l-1, "r", outputFilesTemplate);
-		openStream(supportFiles, l-1, "rb", supportFilesTemplate);
+		openStream(outputFiles, l-1, "r", B_TPL);
+		openStreams2(&supportLists_prev, 6, "r", P_TPL(l-1));
+		openStreams2(&supportLists, 6, "w", P_TPL(l));
 
-		
-		openStreams(supportLists, 5, "w+b", supportListsTemplate);
-
-		openStream(outputFiles, l, "w", outputFilesTemplate);
-		openStream(supportFiles, l, "w+b", supportFilesTemplate);
+		openStream(outputFiles, l, "w", B_TPL);
 
 		char c;
 		int firstIndex;
@@ -95,35 +116,25 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 			secondChar = c & 0x0f;
 			firstChar = c >> 4;
 
-			
-			fread(&firstIndex, sizeof(int), 1, supportFiles[l-1]);
-			fwrite(&firstIndex, sizeof(int), 1, supportLists[firstChar]);
+
+			sread(&firstIndex, sizeof(int), &supportLists_prev);
+			fwrite(&firstIndex, sizeof(int), 1, supportLists.f[firstChar]);
 
 			if(secondChar != 0x06) {
-				fread(&secondIndex, sizeof(int), 1, supportFiles[l-1]);
-				fwrite(&secondIndex, sizeof(int), 1, supportLists[secondChar]);
+				sread(&secondIndex, sizeof(int), &supportLists_prev);
+				fwrite(&secondIndex, sizeof(int), 1, supportLists.f[secondChar]);
 			}
 
 		}
 
-		for (int i = 0; i < 6; ++i) {
-			fflush(supportLists[i]);
-			rewind(supportLists[i]);
-		}
+    closeStreams2(&supportLists_prev);
+    closeStreams2(&supportLists);
+    openStreams2(&supportLists, 6, "r", P_TPL(l));
 
-		//Can be optimized by not copying the files and when reading Nl sequentially(next "for" cycle)
-		//A pointer points to this files and at the end of one just jumps to the next
-		for (int i = 0; i < 6; ++i)
-			copyFile(supportLists[i], supportFiles[l]);
-
-		fflush(supportFiles[l]);
-		rewind(supportFiles[l]);
-
-		
-		openStream(filePointers, l, "rb", "./tests/arrays/T%d");
+		openStream(filePointers, l, "rb", T_TPL);
 		//using malloc here causes problem with valgrind
 		//because he considers some values read by fread uninitialized
-		char *fpl = calloc(numBytes, sizeof(char));
+		char *fpl = malloc(numBytes * sizeof(char));
 		fread(fpl, sizeof(char), numBytes, filePointers[l]);
 
 		int index = 0;
@@ -131,7 +142,7 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 		int oddIndex = 0;
 		char toWrite = 0;
 		for (int i = 0; i < numBytes; ++i) {
-			fread(&index, sizeof(int), 1, supportFiles[l]);
+			sread(&index, sizeof(int), &supportLists);
 			adjIndex = index / 2;
 			oddIndex = index % 2;
 			if(oddIndex)
@@ -145,7 +156,7 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 				toWrite |= 0x06; // @
 			}
 			else {
-				fread(&index, sizeof(int), 1, supportFiles[l]);
+				sread(&index, sizeof(int), &supportLists);
 				adjIndex = index / 2;
 				oddIndex = index % 2;
 
@@ -153,92 +164,34 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 					toWrite |= fpl[adjIndex] & 0x0f;
 				else
 					toWrite |= fpl[adjIndex] >> 4;
-		
+
 			}
 
 			fputc(toWrite, outputFiles[l]);
 
 		}
 		free(fpl);
-		closeStreams(supportLists, 5);
 		fclose(filePointers[l]);
 		fclose(outputFiles[l-1]);
-		fclose(supportFiles[l-1]);
 		fclose(outputFiles[l]);
-		fclose(supportFiles[l]);	
-	
+		closeStreams2(&supportLists);
+
 	}
-	free(supportFiles);
-	free(supportLists);
 	return(outputFiles);
 
-}
-
-
-//Creates a file containing the sequence of natural numbers ending with "totLines"
-void createFirstSupportFile(int totLines, FILE *firstSupport, const char *filePath) {
-	firstSupport = fopen(filePath, "wb");
-	int bufferSize = 1024; // best value?
-
-	int writeCycles = totLines / bufferSize;
-	int lastBufferSize = totLines % bufferSize;
-
-
-	int *buffer = malloc(bufferSize * sizeof(int));
-
-	for(int i = 1; i <= writeCycles; i++) {
-		for(int j = 0; j < bufferSize; j++) {
-			buffer[j] = j + ((i-1) * bufferSize);
-		}
-		fwrite(buffer, sizeof(int), bufferSize, firstSupport);
-	}
-	free(buffer);
-
-	if(lastBufferSize) {
-		int *lastBuffer = malloc(lastBufferSize * sizeof(int));
-		int lastCycleValueStart = writeCycles * bufferSize;
-
-		for (int i = 0; i < lastBufferSize; ++i) {
-			lastBuffer[i] = lastCycleValueStart;
-			lastCycleValueStart++;
-		}
-		fwrite(lastBuffer, sizeof(int), lastBufferSize, firstSupport);
-		free(lastBuffer);
-	}
-	fclose(firstSupport);
 }
 
 
 // Copies the whole content of file origin into file destination
 // Caller must open/close origin and destination streams
 void copyFile(FILE *origin, FILE *destination) {
-	//Calculate file size (Bytes)
-	fseek(origin, 0, SEEK_END);
-	int fileSize = ftell(origin);
-	rewind(origin);
-
-	if(!fileSize)
-		return;
-
-	int bufferSize = 1024; // best value?
-	int writeCycles = fileSize / bufferSize;
-	int lastBufferSize = fileSize % bufferSize;
-
-	char *buffer = calloc(bufferSize, sizeof(char));
-	for(int i = 0; i < writeCycles; i++) {
-		fread(buffer, sizeof(char), bufferSize, origin);
-		fwrite(buffer, sizeof(char), bufferSize, destination);
-	}
+	size_t bufferSize = BUFSIZ;
+	char * buffer = malloc(bufferSize);
+  size_t len = 0;
+  while ((len = fread(buffer, 1, bufferSize, origin)) > 0) {
+		fwrite(buffer, 1, len, destination);
+  }
 	free(buffer);
-
-	if(lastBufferSize) {
-		char *lastBuffer = malloc(lastBufferSize * sizeof(char));
-		fread(lastBuffer, sizeof(char), lastBufferSize, origin);
-		fwrite(lastBuffer, sizeof(char), lastBufferSize, destination);
-		free(lastBuffer);
-	}
-
-
 }
 
 void createStartingFiles(int readMaxLength, int totLines, FILE *firstLCP, FILE *firstBWT, FILE *firstSupportBWT, FILE *firstSupportLCP) {
@@ -264,13 +217,6 @@ void createStartingFiles(int readMaxLength, int totLines, FILE *firstLCP, FILE *
 
 	free(buffer);
 
-}
-
-int min(int a, int b) {
-	if(a <= b)
-		return a;
-
-	return b;
 }
 
 void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
@@ -306,10 +252,10 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 			if(i != 5)
 				fwrite(&s, sizeof(int), 1, supportLCP[i]);
 		}
-		// should be of size 5 but because of how the alfabet is encoded 
+		// should be of size 5 but because of how the alfabet is encoded
 		// it's useful to use the 5 index from 1 to 5 and ignore the first one (0);
 		int alfa[6] = {-1, -1, -1, -1, -1, -1};
-		
+
 
 		int lcpValue;
 		int l;
@@ -347,7 +293,7 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 
 			fread(&lcpValue, sizeof(int), 1, lcp);
 			for (int i = 1; i < 6; ++i) {
-				alfa[i] = min(alfa[i], lcpValue);
+				alfa[i] = alfa[i] <= lcpValue ? alfa[i] : lcpValue;
 			}
 
 			if(decoded != '$' && decoded != '#' && alfa[c] >= 0) {
@@ -371,7 +317,7 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 		closeStreams(partialBWT, readMaxLength);
 
 
-		
+
 		bwt = fopen(bwtTemplate, "wb");
 		lcp = fopen(lcpTemplate, "wb");
 		openStreams(supportBWT, 5, "rb", supportBWTTemplate);
