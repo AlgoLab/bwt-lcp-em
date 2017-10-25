@@ -181,6 +181,7 @@ void computePartialBWT(int readMaxLength, int totLines) {
 		fclose(outputFiles[l]);
 		closeStreams2(&supportLists);
 	}
+	free(outputFiles);
 }
 
 
