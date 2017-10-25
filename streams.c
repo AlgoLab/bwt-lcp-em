@@ -62,53 +62,53 @@ void closeStreams(FILE **filePointers, int amount) {
 // pc running linux with default settings BUFSIZ is 8092 and fs block size is 4096
 // So, the default value should be 4096 can be forcefully changed with setvbuffer function
 void openStreams2(streams_t *streams, size_t length, char *mode, const char *filepathTemplate) {
-  streams->f = malloc(length * sizeof(FILE *));
-  streams->l = length;
-  streams->i = 0;
+	streams->f = malloc(length * sizeof(FILE *));
+	streams->l = length;
+	streams->i = 0;
 
-  char *filepath;
-  for (int i = 0; i < length ; ++i) {
-    asprintf(&filepath, filepathTemplate, i);
-    streams->f[i] = fopen(filepath, mode);
-    free(filepath);
-  }
+	char *filepath;
+	for (int i = 0; i < length ; ++i) {
+		asprintf(&filepath, filepathTemplate, i);
+		streams->f[i] = fopen(filepath, mode);
+		free(filepath);
+	}
 }
 
 // open the filePointers[index] stream in mode *mode*
 void openStream2(streams_t *streams, size_t index, char *mode, const char *filepathTemplate) {
-  streams->f = malloc(sizeof(FILE *));
-  streams->l = 1;
-  streams->i = 0;
+	streams->f = malloc(sizeof(FILE *));
+	streams->l = 1;
+	streams->i = 0;
 
-  char *filepath;
-  asprintf(&filepath, filepathTemplate, index);
-  streams->f[0] = fopen(filepath, mode);
-  free(filepath);
+	char *filepath;
+	asprintf(&filepath, filepathTemplate, index);
+	streams->f[0] = fopen(filepath, mode);
+	free(filepath);
 }
 
 // Close all stream and associated buffers
 void closeStreams2(streams_t *streams) {
 	for (int i = 0; i < streams->l; ++i)
 		fclose(streams->f[i]);
-  free(streams->f);
-  streams->f = NULL;
-  streams->l = 0;
-  streams->i = 0;
+	free(streams->f);
+	streams->f = NULL;
+	streams->l = 0;
+	streams->i = 0;
 }
 
 void truncateStreams2(streams_t *streams) {
 	for (int i = 0; i < streams->l; ++i) {
-    fflush(streams->f[i]);
-    off_t pos = ftello(streams->f[i]);
-    ftruncate(fileno(streams->f[i]), pos);
-  }
+		fflush(streams->f[i]);
+		off_t pos = ftello(streams->f[i]);
+		ftruncate(fileno(streams->f[i]), pos);
+	}
 }
 
 void sread(void * ptr, size_t size, streams_t *streams) {
-  if (streams->i >= streams->l) return;
-  size_t n = fread(ptr, size, 1, streams->f[streams->i]);
-  if (n == 0) {
-    ++streams->i;
-    sread(ptr, size, streams);
-  }
+	if (streams->i >= streams->l) return;
+	size_t n = fread(ptr, size, 1, streams->f[streams->i]);
+	if (n == 0) {
+		++streams->i;
+		sread(ptr, size, streams);
+	}
 }

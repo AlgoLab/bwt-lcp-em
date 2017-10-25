@@ -18,9 +18,9 @@ int main(int argc, char *argv[]) {
 
 	// Error if no file is given as input
 	if (argc == 1) {
-    	fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
-    	return 1;
-  	}
+			fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
+			return 1;
+		}
 
 	fp = gzopen(argv[1], "r");
 	seq = kseq_init(fp);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 	// free of all memory
 	free(filePointers);
 	kseq_destroy(seq);
-  gzclose(fp);
+	gzclose(fp);
 
 	printf("Computing partial BWT\n");
 	computePartialBWT(readMaxLength, linesCounter);
@@ -151,15 +151,15 @@ int main(int argc, char *argv[]) {
 	*/
 
 	/*
-  	FILE *bwtEncoding = fopen("bwtEncoding", "wb");
-  	int enc[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
+		FILE *bwtEncoding = fopen("bwtEncoding", "wb");
+		int enc[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
 
-  	fwrite(enc, sizeof(int), 12, bwtEncoding);
-  	fclose(bwtEncoding);
-  	bwtEncoding = fopen("bwtEncoding", "rb");
-  	reconstructInterleave(bwtEncoding, 4, 12, filePointers);	
-  	fclose(bwtEncoding);
-  	*/
+		fwrite(enc, sizeof(int), 12, bwtEncoding);
+		fclose(bwtEncoding);
+		bwtEncoding = fopen("bwtEncoding", "rb");
+		reconstructInterleave(bwtEncoding, 4, 12, filePointers);
+		fclose(bwtEncoding);
+		*/
 
 	/* Testing getEncodedColumn
 	char *column = getEncodedColumn(filePointers, 136);
@@ -173,5 +173,5 @@ int main(int argc, char *argv[]) {
 	*/
 
 
-  	return 0;
+	return 0;
 }
