@@ -131,11 +131,16 @@ int main(int argc, char *argv[]) {
 	// Close all streams
 	closeStreams(filePointers, readMaxLength);
 
+	// free of all memory
+	free(filePointers);
+	kseq_destroy(seq);
+  gzclose(fp);
+
 	printf("Computing partial BWT\n");
-	FILE **partialBWT = computePartialBWT(filePointers, readMaxLength, linesCounter);
+	computePartialBWT(readMaxLength, linesCounter);
 
 	printf("Computing BWT and LCP\n");
-	computeBWTLCP(partialBWT, readMaxLength, linesCounter);
+	computeBWTLCP(readMaxLength, linesCounter);
 
 
 	/* Testing decode
@@ -166,11 +171,6 @@ int main(int argc, char *argv[]) {
 	fclose(prova);
 	free(column);
 	*/
-
-	// free of all memory
-	free(filePointers);
-	kseq_destroy(seq);
-  	gzclose(fp);
 
 
   	return 0;

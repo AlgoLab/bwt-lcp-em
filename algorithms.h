@@ -8,14 +8,15 @@
 #include "dictionary.h"
 #include "streams.h"
 
+#define T_TPL "./tests/arrays/T%d"
+#define B_TPL "./tests/supportBWT/B%d"
+#define P_TPL(l) ((l) % 2 == 0) ? "./tests/supportLists/Peven_%d" : "./tests/supportLists/Podd_%d"
+#define Lpart_TPL(l) ((l) % 2 == 0) ? "./tests/supportLCP/Leven_%d" : "./tests/supportLCP/Lodd_%d"
+#define Ipart_TPL(l) ((l) % 2 == 0) ? "./tests/supportLCP/Ieven_%d" : "./tests/supportLCP/Iodd_%d"
+#define BWTbin_final "./tests/BWTbin"
+#define LCP_final "./tests/LCP"
 
-void reconstructInterleave(FILE *encodingArray, int n, int length, FILE **partialBWT);
-FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines);
-void copyFile(FILE *origin, FILE *destination);
-void createStartingFiles(int readMaxLength, int totLines, FILE *firstLCP, FILE *firstBWT, FILE *firstSupportBWT, FILE *firstSupportLCP);
-void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines);
-int min(int a, int b);
-
-
+void computePartialBWT(int readMaxLength, int totLines);
+void computeBWTLCP(int readMaxLength, int totLines);
 
 #endif

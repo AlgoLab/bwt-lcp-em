@@ -1,15 +1,17 @@
-P = bwt_lcp
 CC = gcc
-CFLAGS = -std=c99 -Wall -Wno-char-subscripts -Wno-unused-result -O2 -DNDEBUG -D_GNU_SOURCE
+CFLAGS = -std=c99 -Wall -Wno-char-subscripts -Wno-unused-result -O3 -DNDEBUG -D_GNU_SOURCE
 CFLAGS_DEBUG = $(CFLAGS) -UNDEBUG -O0 -g3
 LDFLAGS = -lz -lm
 
-SUBDIRS := $(addprefix tests/, arrays outputFiles supportFiles supportLists BWT LCP supportBWT supportLCP)
+P := bwt_lcp decode_bwt decode_lcp
+SUBDIRS := $(addprefix tests/, arrays supportBWT supportLists supportLCP)
+TEST_INPUTS := $(addprefix tests/, test.fasta.gz test.odd.fasta.gz)
 
-TEST_INPUT := tests/test.fasta.gz
+# Make must run serially (even if -j N > 1 is given) (GNU make extension)
+.NOTPARALLEL:
 
 .PHONY: bin
-bin: subdirs bwt_lcp decode_bwt decode_lcp
+bin: $(P)
 
 .PHONY: subdirs
 subdirs: $(SUBDIRS)
@@ -26,16 +28,21 @@ $(SUBDIRS):
 .PHONY: clean
 clean:
 	@echo "Cleaning..."
-	rm -rf *.o *.out *.exe *.debug bwt_lcp decode_bwt decode_lcp $(SUBDIRS) tests/B_W_T
+	rm -rf *.o *.out *.exe *.debug $(P) $(SUBDIRS) tests/BWTbin tests/LCP
 
 .PHONY: test
-test: clean bin
-	@echo "Starting test on file $(TEST_INPUT) (no output)" && \
-	time -p ./bwt_lcp $(TEST_INPUT) > .log 2> .time && \
-	diff .log $(TEST_INPUT).log; \
-	diff -y .time $(TEST_INPUT).time; \
-	rm -rf .log .time; \
-	md5sum -c $(TEST_INPUT).sums
+test: clean subdirs bin $(TEST_INPUTS)
+
+.PHONY: $(TEST_INPUTS)
+$(TEST_INPUTS): clean subdirs bin
+	@echo "Starting test on file $@ (no output)" && \
+	time -p -o .time ./bwt_lcp $@ > .log 2> .err && \
+	( \
+		diff .log $@.log; \
+		diff -y -W 40 .time $@.time; \
+		rm -f .time .log .err; \
+		md5sum -c $@.sums; \
+	)
 
 %.debug: %.c
 	$(CC) $(CFLAGS_DEBUG) $^ -o $@ $(LDFLAGS)

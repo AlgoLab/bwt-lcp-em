@@ -28,16 +28,13 @@
 *.out
 *.app
 
-tests/arrays/*
-tests/outputFiles/*
-tests/supportFiles/*
-tests/supportLists/*
-tests/BWT/*
-tests/LCP/*
-tests/supportBWT/*
-tests/supportLCP/*
+tests/arrays/
+tests/supportLists/
+tests/supportBWT/
+tests/supportLCP/
+tests/BWTbin
+tests/LCP
 tests/test2.fasta
-tests/B_W_T
 bwt_lcp
 decode_bwt
 decode_lcp

@@ -1,6 +1,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include "streams.h"
 
@@ -92,6 +94,14 @@ void closeStreams2(streams_t *streams) {
   streams->f = NULL;
   streams->l = 0;
   streams->i = 0;
+}
+
+void truncateStreams2(streams_t *streams) {
+	for (int i = 0; i < streams->l; ++i) {
+    fflush(streams->f[i]);
+    off_t pos = ftello(streams->f[i]);
+    ftruncate(fileno(streams->f[i]), pos);
+  }
 }
 
 void sread(void * ptr, size_t size, streams_t *streams) {

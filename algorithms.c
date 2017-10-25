@@ -1,19 +1,34 @@
 #include "algorithms.h"
 
+#include <sys/mman.h>
+
+// Copies the whole content of file origin into file destination
+// Caller must open/close origin and destination streams
+void copyFile(FILE *origin, FILE *destination) {
+	size_t bufferSize = BUFSIZ;
+	char * buffer = malloc(bufferSize);
+  size_t len = 0;
+  while ((len = fread(buffer, 1, bufferSize, origin)) > 0) {
+		fwrite(buffer, 1, len, destination);
+  }
+	free(buffer);
+}
+
 // Algorithm 1 (paper)
-void reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingLength, FILE **partialBWT) {
-	FILE *bwt = fopen("./tests/B_W_T", "w");
+void reconstructInterleave(streams_t *Iprev, int readMaxLength, int encodingLength) {
+	FILE *bwt = fopen(BWTbin_final, "w");
 	int i;
-	openStreams(partialBWT, readMaxLength, "r", "./tests/outputFiles/B%d");
+  streams_t Bpart;
+	openStreams2(&Bpart, readMaxLength+1, "r", B_TPL);
 	char *supportBuffer = malloc((readMaxLength + 1) * sizeof(char));
 	char toWrite = -1;
 	for (int i = 0; i <= readMaxLength; ++i)
 		supportBuffer[i] = -1; // ff
 	char c;
 	for(int q = 0; q < encodingLength; q++) {
-		fread(&i, sizeof(int), 1, encodingArray);
+		sread(&i, sizeof(int), Iprev);
 		if(supportBuffer[i] == -1) {
-			c = fgetc(partialBWT[i]);
+			c = fgetc(Bpart.f[i]);
 			supportBuffer[i] = c & 0x0f;
 			c = c >> 4;
 		}
@@ -44,16 +59,10 @@ void reconstructInterleave(FILE *encodingArray, int readMaxLength, int encodingL
 
 
 	}
-	closeStreams(partialBWT, readMaxLength);
+	closeStreams2(&Bpart);
 	free(supportBuffer);
 	fclose(bwt);
 }
-
-#define outputFilesTemplate "./tests/outputFiles/B%d"
-#define supportListsTemplate "./tests/supportLists/P%d"
-#define T_TPL "./tests/arrays/T%d"
-#define B_TPL outputFilesTemplate
-#define P_TPL(l) ((l) % 2 == 0) ? "./tests/supportLists/Peven_%d" : "./tests/supportLists/Podd_%d"
 
 //Creates a file containing the sequence of natural numbers ending with "totLines"
 void createFirstSupportFile(int totLines, FILE *firstSupport) {
@@ -75,17 +84,18 @@ void createFirstSupportFile(int totLines, FILE *firstSupport) {
 }
 
 // Algorithm 2(paper)
-FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
+void computePartialBWT(int readMaxLength, int totLines) {
 	FILE **outputFiles = malloc((readMaxLength+1) * sizeof(FILE *));
 	streams_t supportLists;
 	streams_t supportLists_prev;
+  streams_t T;
 
 
 	//Calculates B0 (copies T0)
-	openStream(filePointers, 0, "rb", T_TPL);
+	openStream2(&T, 0, "rb", T_TPL);
 	openStream(outputFiles, 0, "wb", B_TPL);
-	copyFile(filePointers[0], outputFiles[0]);
-	fclose(filePointers[0]);
+	copyFile(T.f[0], outputFiles[0]);
+	closeStreams2(&T);
 	fclose(outputFiles[0]);
 
 	//Calculates N0 -> sequence of natural numbers ending with m (= totLines)
@@ -126,16 +136,14 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 			}
 
 		}
+		fclose(outputFiles[l-1]);
 
     closeStreams2(&supportLists_prev);
     closeStreams2(&supportLists);
     openStreams2(&supportLists, 6, "r", P_TPL(l));
 
-		openStream(filePointers, l, "rb", T_TPL);
-		//using malloc here causes problem with valgrind
-		//because he considers some values read by fread uninitialized
-		char *fpl = malloc(numBytes * sizeof(char));
-		fread(fpl, sizeof(char), numBytes, filePointers[l]);
+		openStream2(&T, l, "rb", T_TPL);
+		char *fpl = mmap(NULL, numBytes, PROT_READ, MAP_PRIVATE, fileno(T.f[0]), 0);
 
 		int index = 0;
 		int adjIndex = 0;
@@ -146,11 +154,9 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 			adjIndex = index / 2;
 			oddIndex = index % 2;
 			if(oddIndex)
-				toWrite = fpl[adjIndex] & 0x0f;
+				toWrite = (fpl[adjIndex] & 0x0f) << 4;
 			else
-				toWrite = fpl[adjIndex] >> 4;
-
-			toWrite = toWrite << 4;
+				toWrite = (fpl[adjIndex] & 0xf0);
 
 			if(i == numBytes-1 && odd) {
 				toWrite |= 0x06; // @
@@ -170,87 +176,75 @@ FILE **computePartialBWT(FILE **filePointers, int readMaxLength, int totLines) {
 			fputc(toWrite, outputFiles[l]);
 
 		}
-		free(fpl);
-		fclose(filePointers[l]);
-		fclose(outputFiles[l-1]);
+		munmap(fpl, numBytes);
+		closeStreams2(&T);
 		fclose(outputFiles[l]);
 		closeStreams2(&supportLists);
-
 	}
-	return(outputFiles);
-
 }
 
 
-// Copies the whole content of file origin into file destination
-// Caller must open/close origin and destination streams
-void copyFile(FILE *origin, FILE *destination) {
-	size_t bufferSize = BUFSIZ;
-	char * buffer = malloc(bufferSize);
-  size_t len = 0;
-  while ((len = fread(buffer, 1, bufferSize, origin)) > 0) {
-		fwrite(buffer, 1, len, destination);
-  }
-	free(buffer);
-}
+void createStartingFiles(int readMaxLength, int totLines) {
 
-void createStartingFiles(int readMaxLength, int totLines, FILE *firstLCP, FILE *firstBWT, FILE *firstSupportBWT, FILE *firstSupportLCP) {
-	int *buffer = malloc(totLines * sizeof(int));
+  int *buffer = malloc(totLines * sizeof(int));
+
+  streams_t Iprev;
+  openStreams2(&Iprev, 6, "w", Ipart_TPL(0));
 	for (int i = 0; i <= readMaxLength; ++i) {
 		for (int j = 0; j < totLines; ++j) {
 			buffer[j] = i;
 		}
-		fwrite(buffer, sizeof(int), totLines, firstBWT);
+		fwrite(buffer, sizeof(int), totLines, Iprev.f[(i == 0) ? 0 : 1]);
 	}
+  closeStreams2(&Iprev);
 
-	memset(buffer, 0, totLines * 4);
-	fwrite(buffer, sizeof(int), totLines, firstSupportBWT);
+	memset(buffer, 0, totLines * sizeof(int));
+
+  streams_t Icur;
+  openStreams2(&Icur, 6, "w", Ipart_TPL(1));
+	fwrite(buffer, sizeof(int), totLines, Icur.f[0]);
+  closeStreams2(&Icur);
+
+  streams_t Lcur;
 	buffer[0] = -1;
+  openStreams2(&Lcur, 6, "w", Lpart_TPL(1));
+	fwrite(buffer, sizeof(int), totLines, Lcur.f[0]);
+  closeStreams2(&Lcur);
 
-	fwrite(buffer, sizeof(int), totLines, firstSupportLCP);
-
-	fwrite(buffer, sizeof(int), totLines, firstLCP);
-
-	buffer[0] = 0;
-	for (int i = 0; i < readMaxLength; ++i)
-		fwrite(buffer, sizeof(int), totLines, firstLCP);
+  streams_t Lprev;
+  openStreams2(&Lprev, 6, "w", Lpart_TPL(0));
+	fwrite(buffer, sizeof(int), totLines, Lprev.f[0]);
+  buffer[0] = 0;
+	for (int i = 1; i <= readMaxLength; ++i) {
+		fwrite(buffer, sizeof(int), totLines, Lprev.f[1]);
+	}
+  closeStreams2(&Lprev);
 
 	free(buffer);
-
 }
 
-void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
+void computeBWTLCP(int readMaxLength, int totLines) {
 
-	FILE **supportLCP = malloc(6 * sizeof(FILE *));
-	FILE **supportBWT = malloc(6 * sizeof(FILE *));
-	FILE *lcp;
-	FILE *bwt;
+  createStartingFiles(readMaxLength, totLines);
 
-	const char *supportLCPTemplate = "./tests/supportLCP/L%d";
-	const char *supportBWTTemplate = "./tests/supportBWT/I%d";
-	const char *lcpTemplate = "./tests/LCP/LCP";
-	const char *bwtTemplate = "./tests/BWT/BWT";
-
-	lcp = fopen(lcpTemplate, "wb");
-	bwt = fopen(bwtTemplate, "wb");
-	openStream(supportBWT, 0, "wb", supportBWTTemplate);
-	openStream(supportLCP, 0, "wb", supportLCPTemplate);
-	createStartingFiles(readMaxLength, totLines, lcp, bwt, supportBWT[0], supportLCP[0]);
-	fclose(lcp);
-	fclose(bwt);
-	fclose(supportBWT[0]);
-	fclose(supportLCP[0]);
-	//not closing supportBWT[0] and supportLCP[0], will be done together with others supportBWT elements
+  streams_t Iprev, Icur, Lprev, Lcur, Bpart;
 
 	int maxLCP = 0;
 	int p = 0;
-	while(maxLCP == p) {
+  char *supportBuffer = malloc((readMaxLength+1) * sizeof(char));
+	while (maxLCP == p) {
 		printf("Starting iteration n° %d\n", p);
+    fflush(stdout);
+
+    openStreams2(&Iprev, 6, "r", Ipart_TPL(p));
+    openStreams2(&Lprev, 6, "r", Lpart_TPL(p));
+    // r+ so that we can write but the file is not truncated
+    openStreams2(&Icur, 6, "r+", Ipart_TPL(p+1));
+    openStreams2(&Lcur, 6, "r+", Lpart_TPL(p+1));
+
 		int s = 0;
-		for (int i = 1; i < 6; ++i) {
-			openStream(supportLCP, i, "wb", supportLCPTemplate);
-			if(i != 5)
-				fwrite(&s, sizeof(int), 1, supportLCP[i]);
+		for (int i = 1; i < 5; ++i) {
+			fwrite(&s, sizeof(int), 1, Lcur.f[i]);
 		}
 		// should be of size 5 but because of how the alfabet is encoded
 		// it's useful to use the 5 index from 1 to 5 and ignore the first one (0);
@@ -260,85 +254,66 @@ void computeBWTLCP(FILE **partialBWT, int readMaxLength, int totLines) {
 		int lcpValue;
 		int l;
 		char c;
-		char decoded;
-		char *supportBuffer = malloc((readMaxLength+1) * sizeof(char));
 		for (int i = 0; i <= readMaxLength; ++i)
 			supportBuffer[i] = -1; // ff
 
-		openStreams(partialBWT, readMaxLength, "r", "./tests/outputFiles/B%d");
-		for (int i = 1; i < 6; ++i)
-			openStream(supportBWT, i, "wb", supportBWTTemplate);
-		bwt = fopen(bwtTemplate, "rb");
-		lcp = fopen(lcpTemplate, "rb");
+		openStreams2(&Bpart, readMaxLength + 1, "r", B_TPL);
 		for (int i = 0; i < (readMaxLength + 1) * totLines; ++i) {
-			fread(&l, sizeof(int), 1, bwt);
-			if(supportBuffer[l] == -1) {
-				c = fgetc(partialBWT[l]);
+			sread(&l, sizeof(int), &Iprev);
+			if (supportBuffer[l] == -1) {
+				c = fgetc(Bpart.f[l]);
 				supportBuffer[l] = c & 0x0f;
 				c = c >> 4;
-			}
-			else {
+			} else {
 				c = supportBuffer[l];
 				supportBuffer[l] = -1;
 			}
 
-			//c = MASK[c];
+      int decoded = charToCode(c);
 
-			decoded = charToCode(c);
-
-			if(decoded != '$') {
+			if (decoded != '$') {
 				l++;
-				fwrite(&l, sizeof(int), 1, supportBWT[c]);
+				fwrite(&l, sizeof(int), 1, Icur.f[c]);
 			}
 
-			fread(&lcpValue, sizeof(int), 1, lcp);
+			sread(&lcpValue, sizeof(int), &Lprev);
 			for (int i = 1; i < 6; ++i) {
-				alfa[i] = alfa[i] <= lcpValue ? alfa[i] : lcpValue;
+				alfa[i] = (alfa[i] <= lcpValue) ? alfa[i] : lcpValue;
 			}
 
-			if(decoded != '$' && decoded != '#' && alfa[c] >= 0) {
+			if (decoded != '$' && decoded != '#' && alfa[c] >= 0) {
 				int a = alfa[c] + 1;
-				if(a > maxLCP)
-					maxLCP = a;
-				fwrite(&a, sizeof(int), 1, supportLCP[c]);
+        maxLCP = (maxLCP <= a) ? a : maxLCP;
+				fwrite(&a, sizeof(int), 1, Lcur.f[c]);
 			}
 
-			alfa[c] = INT_MAX;
-
-
-
+			alfa[c] = readMaxLength + 10;
 		}
-		for (int i = 1; i < 6; ++i)
-			fclose(supportBWT[i]);
-		for (int i = 1; i < 6; ++i)
-			fclose(supportLCP[i]);
-		fclose(bwt);
-		fclose(lcp);
-		closeStreams(partialBWT, readMaxLength);
+    closeStreams2(&Bpart);
+    closeStreams2(&Iprev);
+    closeStreams2(&Lprev);
+    fseek(Icur.f[0], 0, SEEK_END);
+    truncateStreams2(&Icur);
+    closeStreams2(&Icur);
+    fseek(Lcur.f[0], 0, SEEK_END);
+    truncateStreams2(&Lcur);
+    closeStreams2(&Lcur);
 
-
-
-		bwt = fopen(bwtTemplate, "wb");
-		lcp = fopen(lcpTemplate, "wb");
-		openStreams(supportBWT, 5, "rb", supportBWTTemplate);
-		openStreams(supportLCP, 5, "rb", supportLCPTemplate);
-		for (int i = 0; i < 6; ++i) {
-			copyFile(supportBWT[i], bwt);
-			copyFile(supportLCP[i], lcp);
-		}
-		fclose(lcp);
-		fclose(bwt);
-		closeStreams(supportLCP, 5);
-		closeStreams(supportBWT, 5);
-		free(supportBuffer);
 		p++;
 	}
-	bwt = fopen(bwtTemplate, "rb");
-	reconstructInterleave(bwt, readMaxLength, (readMaxLength + 1) * totLines, partialBWT);
-	fclose(bwt);
-	free(supportBWT);
-	free(supportLCP);
-	free(partialBWT);
+  free(supportBuffer);
+  FILE *lcp;
+  lcp = fopen(LCP_final, "wb");
+  openStreams2(&Lprev, 6, "rb", Lpart_TPL(p));
+  for (int i = 0; i < 6; ++i) {
+    copyFile(Lprev.f[i], lcp);
+  }
+  closeStreams2(&Lprev);
+  fclose(lcp);
+
+  openStreams2(&Iprev, 6, "rb", Ipart_TPL(p));
+	reconstructInterleave(&Iprev, readMaxLength, (readMaxLength + 1) * totLines);
+  closeStreams2(&Iprev);
 }
 
 
