@@ -90,6 +90,9 @@ void computePartialBWT(int readMaxLength, int totLines) {
 	streams_t supportLists_prev;
 	streams_t T;
 
+	const size_t numBytes = (totLines / 2) + (totLines % 2);
+	const bool odd = (totLines % 2) == 1;
+	// numBytes should be the size of outputfiles[l]
 
 	//Calculates B0 (copies T0)
 	openStream2(&T, 0, "rb", T_TPL);
@@ -116,11 +119,6 @@ void computePartialBWT(int readMaxLength, int totLines) {
 		int secondIndex;
 		unsigned char firstChar = 0;
 		unsigned char secondChar = 0;
-		int numBytes = totLines / 2;
-		int odd = totLines % 2;
-		if(odd) // every outpufile will contain in the last 4 bits of the last byte "0x06", code for "@"
-			numBytes++;
-		// now numBytes should be the size of outputfiles[l-1]
 		for (int i = 0; i < numBytes; ++i) {
 			c = fgetc(outputFiles[l-1]);
 			secondChar = c & 0x0f;
