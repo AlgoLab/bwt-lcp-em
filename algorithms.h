@@ -17,6 +17,6 @@
 #define LCP_final "./tests/LCP"
 
 void computePartialBWT(int readMaxLength, int totLines);
-void computeBWTLCP(int readMaxLength, int totLines);
+void computeBWTLCP(size_t readMaxLength, size_t totLines);
 
 #endif
