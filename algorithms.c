@@ -3,8 +3,9 @@
 #include <sys/mman.h>
 #include <stdint.h>
 
-typedef int32_t lcp_element_t;
+typedef uint16_t lcp_element_t;
 #define LCP_EL_SIZE sizeof(lcp_element_t)
+#define lcp_minus1 ((lcp_element_t)(~0))
 
 typedef uint32_t idx_element_t;
 #define IDX_EL_SIZE sizeof(idx_element_t)
@@ -24,18 +25,17 @@ void copyFile(FILE *origin, FILE *destination) {
 
 // Copies the whole content of file origin into file destination
 // Caller must open/close origin and destination streams
-void copyLCPFile(FILE *origin, FILE *destination,
-                 const size_t lcp_size, const lcp_element_t minus1) {
+void copyLCPFile(FILE *origin, FILE *destination) {
 	size_t bufferSize = BUFSIZ;
-	lcp_element_t *in_buffer = malloc(bufferSize * lcp_size);
-	lcp_element_t *out_buffer = malloc(bufferSize * LCP_EL_SIZE);
+	lcp_element_t *in_buffer = malloc(bufferSize * LCP_EL_SIZE);
+	uint32_t *out_buffer = malloc(bufferSize * 4);
 	size_t len = 0;
-	while ((len = fread(in_buffer, lcp_size, bufferSize, origin)) > 0) {
+	while ((len = fread(in_buffer, LCP_EL_SIZE, bufferSize, origin)) > 0) {
 		for (size_t i = 0; i < len; ++i) {
-			out_buffer[i] = (*(lcp_element_t *)(((void *)in_buffer) + i)) & minus1;
-			if (out_buffer[i] == minus1) out_buffer[i] = (lcp_element_t)(-1);
+			out_buffer[i] = in_buffer[i];
+			if (in_buffer[i] == lcp_minus1) out_buffer[i] = -1;
 		}
-		fwrite(out_buffer, LCP_EL_SIZE, len, destination);
+		fwrite(out_buffer, 4, len, destination);
 	}
 	free(in_buffer);
 	free(out_buffer);
@@ -209,21 +209,7 @@ void computePartialBWT(int readMaxLength, int totLines) {
 	free(outputFiles);
 }
 
-void get_LCPsize(size_t readMaxLength, size_t *size, lcp_element_t *minus1) {
-	*size = 1;
-	*minus1 = 256;
-
-	while (readMaxLength >= (*minus1) - 2) {
-		*size *= 2;
-		*minus1 *= *minus1;
-	}
-	*minus1 -= 1;
-}
-
-
-
-void createStartingFiles(size_t readMaxLength, size_t totLines,
-                         size_t lcp_size, lcp_element_t lcp_minus1) {
+void createStartingFiles(size_t readMaxLength, size_t totLines) {
 	idx_element_t *idx_buffer = malloc(totLines * IDX_EL_SIZE);
 
 	streams_t Iprev;
@@ -245,21 +231,21 @@ void createStartingFiles(size_t readMaxLength, size_t totLines,
 
 	free(idx_buffer);
 
-	lcp_element_t *lcp_buffer = malloc(totLines * lcp_size);
-	memset(lcp_buffer, 0, totLines * lcp_size);
+	lcp_element_t *lcp_buffer = malloc(totLines * LCP_EL_SIZE);
+	memset(lcp_buffer, 0, totLines * LCP_EL_SIZE);
 
 	streams_t Lcur;
 	lcp_buffer[0] = lcp_minus1;
 	openStreams2(&Lcur, 6, "w", Lpart_TPL(1));
-	fwrite(lcp_buffer, lcp_size, totLines, Lcur.f[0]);
+	fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lcur.f[0]);
 	closeStreams2(&Lcur);
 
 	streams_t Lprev;
 	openStreams2(&Lprev, 6, "w", Lpart_TPL(0));
-	fwrite(lcp_buffer, lcp_size, totLines, Lprev.f[0]);
+	fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[0]);
 	lcp_buffer[0] = 0;
 	for (int i = 1; i <= readMaxLength; ++i) {
-		fwrite(lcp_buffer, lcp_size, totLines, Lprev.f[1]);
+		fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[1]);
 	}
 	closeStreams2(&Lprev);
 
@@ -269,10 +255,7 @@ void createStartingFiles(size_t readMaxLength, size_t totLines,
 void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 
 	const size_t num_bytes = (readMaxLength + 1) * totLines;
-	size_t lcp_size;
-	lcp_element_t lcp_minus1;
-	get_LCPsize(readMaxLength, &lcp_size, &lcp_minus1);
-	createStartingFiles(readMaxLength, totLines, lcp_size, lcp_minus1);
+	createStartingFiles(readMaxLength, totLines);
 
 	streams_t Iprev, Icur, Lprev, Lcur, Bpart;
 
@@ -291,11 +274,11 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 
 		lcp_element_t s = 0;
 		for (int i = 1; i < 5; ++i) {
-			fwrite(&s, lcp_size, 1, Lcur.f[i]);
+			fwrite(&s, LCP_EL_SIZE, 1, Lcur.f[i]);
 		}
 		// should be of size 5 but because of how the alfabet is encoded
 		// it's useful to use the 5 index from 1 to 5 and ignore the first one (0);
-		lcp_element_t alfa[6] = {-1, -1, -1, -1, -1, -1};
+		lcp_element_t alfa[6] = {lcp_minus1, lcp_minus1, lcp_minus1, lcp_minus1, lcp_minus1, lcp_minus1};
 
 
 		lcp_element_t lcpValue;
@@ -324,16 +307,17 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 			}
 
 			lcpValue = 0;
-			sread(&lcpValue, lcp_size, &Lprev);
-			if (lcpValue == lcp_minus1) lcpValue = -1;
-			for (int i = 1; i < 6; ++i) {
-				alfa[i] = (alfa[i] <= lcpValue) ? alfa[i] : lcpValue;
+			sread(&lcpValue, LCP_EL_SIZE, &Lprev);
+			if (lcpValue != lcp_minus1) {
+				for (int i = 1; i < 6; ++i) {
+					alfa[i] = ((alfa[i] == lcp_minus1) || (alfa[i] <= lcpValue)) ? alfa[i] : lcpValue;
+				}
 			}
 
-			if (decoded != '$' && decoded != '#' && alfa[c] >= 0) {
+			if (decoded != '$' && decoded != '#' && alfa[c] != lcp_minus1) {
 				lcp_element_t a = alfa[c] + 1;
 				maxLCP = (maxLCP <= a) ? a : maxLCP;
-				fwrite(&a, lcp_size, 1, Lcur.f[c]);
+				fwrite(&a, LCP_EL_SIZE, 1, Lcur.f[c]);
 			}
 
 			alfa[c] = readMaxLength + 2;	// i.e. infinity ...
@@ -355,7 +339,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 	lcp = fopen(LCP_final, "wb");
 	openStreams2(&Lprev, 6, "rb", Lpart_TPL(p));
 	for (int i = 0; i < 6; ++i) {
-		copyLCPFile(Lprev.f[i], lcp, lcp_size, lcp_minus1);
+		copyLCPFile(Lprev.f[i], lcp);
 	}
 	closeStreams2(&Lprev);
 	fclose(lcp);
