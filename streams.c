@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <fcntl.h>
 
 #include "streams.h"
 
@@ -66,10 +67,16 @@ void openStreams2(streams_t *streams, size_t length, char *mode, const char *fil
 	streams->l = length;
 	streams->i = 0;
 
+	const int isreading = strcmp(mode, "r") == 0;
+
 	char *filepath;
-	for (int i = 0; i < length ; ++i) {
+	for (size_t i = 0; i < length ; ++i) {
 		asprintf(&filepath, filepathTemplate, i);
 		streams->f[i] = fopen(filepath, mode);
+		if (isreading) {
+			posix_fadvise(fileno(streams->f[i]), 0, 0, POSIX_FADV_SEQUENTIAL);
+			posix_fadvise(fileno(streams->f[i]), 0, 0, POSIX_FADV_WILLNEED);
+		}
 		free(filepath);
 	}
 }
