@@ -88,7 +88,7 @@ void openStream2(streams_t *streams, size_t index, char *mode, const char *filep
 
 // Close all stream and associated buffers
 void closeStreams2(streams_t *streams) {
-	for (int i = 0; i < streams->l; ++i)
+	for (size_t i = 0; i < streams->l; ++i)
 		fclose(streams->f[i]);
 	free(streams->f);
 	streams->f = NULL;
@@ -97,7 +97,7 @@ void closeStreams2(streams_t *streams) {
 }
 
 void truncateStreams2(streams_t *streams) {
-	for (int i = 0; i < streams->l; ++i) {
+	for (size_t i = 0; i < streams->l; ++i) {
 		fflush(streams->f[i]);
 		off_t pos = ftello(streams->f[i]);
 		ftruncate(fileno(streams->f[i]), pos);
@@ -106,7 +106,7 @@ void truncateStreams2(streams_t *streams) {
 
 void sread(void * ptr, size_t size, streams_t *streams) {
 	if (streams->i >= streams->l) return;
-	size_t n = fread(ptr, size, 1, streams->f[streams->i]);
+	size_t n = fread_unlocked(ptr, size, 1, streams->f[streams->i]);
 	if (n == 0) {
 		++streams->i;
 		sread(ptr, size, streams);

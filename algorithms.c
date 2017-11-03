@@ -17,7 +17,7 @@ void copyFile(FILE *origin, FILE *destination) {
 	size_t bufferSize = BUFSIZ;
 	char * buffer = malloc(bufferSize);
 	size_t len = 0;
-	while ((len = fread(buffer, 1, bufferSize, origin)) > 0) {
+	while ((len = fread_unlocked(buffer, 1, bufferSize, origin)) > 0) {
 		fwrite(buffer, 1, len, destination);
 	}
 	free(buffer);
@@ -33,11 +33,11 @@ void reconstructInterleave(streams_t *Iprev, int readMaxLength, int encodingLeng
 	char toWrite = -1;
 	for (int i = 0; i <= readMaxLength; ++i)
 		supportBuffer[i] = -1; // ff
-	char c;
+	unsigned char c;
 	for(int q = 0; q < encodingLength; q++) {
 		sread(&i, sizeof(int), Iprev);
 		if(supportBuffer[i] == -1) {
-			c = fgetc(Bpart.f[i]);
+			c = getc_unlocked(Bpart.f[i]);
 			supportBuffer[i] = c & 0x0f;
 			c = c >> 4;
 		}
@@ -123,23 +123,23 @@ void computePartialBWT(int readMaxLength, int totLines) {
 
 		openStream(outputFiles, l, "w", B_TPL);
 
-		char c;
+		unsigned char c;
 		int firstIndex;
 		int secondIndex;
 		unsigned char firstChar = 0;
 		unsigned char secondChar = 0;
-		for (int i = 0; i < numBytes; ++i) {
-			c = fgetc(outputFiles[l-1]);
+		for (size_t i = 0; i < numBytes; ++i) {
+			c = getc(outputFiles[l-1]);
 			secondChar = c & 0x0f;
 			firstChar = c >> 4;
 
 
 			sread(&firstIndex, sizeof(int), &supportLists_prev);
-			fwrite(&firstIndex, sizeof(int), 1, supportLists.f[firstChar]);
+			fwrite_unlocked(&firstIndex, sizeof(int), 1, supportLists.f[firstChar]);
 
 			if(secondChar != 0x06) {
 				sread(&secondIndex, sizeof(int), &supportLists_prev);
-				fwrite(&secondIndex, sizeof(int), 1, supportLists.f[secondChar]);
+				fwrite_unlocked(&secondIndex, sizeof(int), 1, supportLists.f[secondChar]);
 			}
 
 		}
@@ -155,8 +155,8 @@ void computePartialBWT(int readMaxLength, int totLines) {
 		int index = 0;
 		int adjIndex = 0;
 		int oddIndex = 0;
-		char toWrite = 0;
-		for (int i = 0; i < numBytes; ++i) {
+		unsigned char toWrite = 0;
+		for (size_t i = 0; i < numBytes; ++i) {
 			sread(&index, sizeof(int), &supportLists);
 			adjIndex = index / 2;
 			oddIndex = index % 2;
@@ -200,7 +200,7 @@ void createStartingFiles(size_t readMaxLength, size_t totLines) {
 		for (size_t j = 0; j < totLines; ++j) {
 			idx_buffer[j] = i;
 		}
-		fwrite(idx_buffer, IDX_EL_SIZE, totLines, Iprev.f[(i == 0) ? 0 : 1]);
+		fwrite_unlocked(idx_buffer, IDX_EL_SIZE, totLines, Iprev.f[(i == 0) ? 0 : 1]);
 	}
 	closeStreams2(&Iprev);
 
@@ -208,7 +208,7 @@ void createStartingFiles(size_t readMaxLength, size_t totLines) {
 
 	streams_t Icur;
 	openStreams2(&Icur, 6, "w", Ipart_TPL(1));
-	fwrite(idx_buffer, IDX_EL_SIZE, totLines, Icur.f[0]);
+	fwrite_unlocked(idx_buffer, IDX_EL_SIZE, totLines, Icur.f[0]);
 	closeStreams2(&Icur);
 
 	free(idx_buffer);
@@ -219,15 +219,15 @@ void createStartingFiles(size_t readMaxLength, size_t totLines) {
 	streams_t Lcur;
 	lcp_buffer[0] = lcp_minus1;
 	openStreams2(&Lcur, 6, "w", Lpart_TPL(1));
-	fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lcur.f[0]);
+	fwrite_unlocked(lcp_buffer, LCP_EL_SIZE, totLines, Lcur.f[0]);
 	closeStreams2(&Lcur);
 
 	streams_t Lprev;
 	openStreams2(&Lprev, 6, "w", Lpart_TPL(0));
-	fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[0]);
+	fwrite_unlocked(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[0]);
 	lcp_buffer[0] = 0;
-	for (int i = 1; i <= readMaxLength; ++i) {
-		fwrite(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[1]);
+	for (size_t i = 1; i <= readMaxLength; ++i) {
+		fwrite_unlocked(lcp_buffer, LCP_EL_SIZE, totLines, Lprev.f[1]);
 	}
 	closeStreams2(&Lprev);
 
@@ -256,7 +256,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 
 		lcp_element_t s = 0;
 		for (int i = 1; i < 5; ++i) {
-			fwrite(&s, LCP_EL_SIZE, 1, Lcur.f[i]);
+			fwrite_unlocked(&s, LCP_EL_SIZE, 1, Lcur.f[i]);
 		}
 		// should be of size 5 but because of how the alfabet is encoded
 		// it's useful to use the 5 index from 1 to 5 and ignore the first one (0);
@@ -265,7 +265,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 
 		lcp_element_t lcpValue;
 		idx_element_t l;
-		char c;
+		unsigned char c;
 		for (size_t i = 0; i <= readMaxLength; ++i)
 			supportBuffer[i] = -1; // ff
 
@@ -273,7 +273,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 		for (size_t i = 0; i < num_bytes; ++i) {
 			sread(&l, IDX_EL_SIZE, &Iprev);
 			if (supportBuffer[l] == -1) {
-				c = fgetc(Bpart.f[l]);
+				c = getc(Bpart.f[l]);
 				supportBuffer[l] = c & 0x0f;
 				c = c >> 4;
 			} else {
@@ -285,21 +285,23 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 
 			if (decoded != '$') {
 				l++;
-				fwrite(&l, IDX_EL_SIZE, 1, Icur.f[c]);
+				fwrite_unlocked(&l, IDX_EL_SIZE, 1, Icur.f[c]);
 			}
 
 			lcpValue = 0;
 			sread(&lcpValue, LCP_EL_SIZE, &Lprev);
 			if (lcpValue != lcp_minus1) {
 				for (int i = 1; i < 6; ++i) {
-					alfa[i] = ((alfa[i] == lcp_minus1) || (alfa[i] <= lcpValue)) ? alfa[i] : lcpValue;
+					alfa[i] = (alfa[i] == lcp_minus1)
+						? alfa[i]
+						: (alfa[i] <= lcpValue) ? alfa[i] : lcpValue;
 				}
 			}
 
 			if (decoded != '$' && decoded != '#' && alfa[c] != lcp_minus1) {
 				lcp_element_t a = alfa[c] + 1;
 				maxLCP = (maxLCP <= a) ? a : maxLCP;
-				fwrite(&a, LCP_EL_SIZE, 1, Lcur.f[c]);
+				fwrite_unlocked(&a, LCP_EL_SIZE, 1, Lcur.f[c]);
 			}
 
 			alfa[c] = readMaxLength + 2;	// i.e. infinity ...
