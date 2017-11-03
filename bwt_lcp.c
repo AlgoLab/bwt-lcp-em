@@ -34,6 +34,13 @@ int main(int argc, char *argv[]) {
 			readMaxLength = l;
 	}
 
+	if (readMaxLength > 253) {
+		printf("Input reads are too long! Current = %d, max = 253\n", readMaxLength);
+		kseq_destroy(seq);
+		gzclose(fp);
+		return 1;
+	}
+
 	// Array with pointers to all files
 	FILE **filePointers = malloc((readMaxLength+1) * sizeof(FILE *));
 

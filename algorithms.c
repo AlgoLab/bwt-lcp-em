@@ -3,9 +3,12 @@
 #include <sys/mman.h>
 #include <stdint.h>
 
-typedef uint16_t lcp_element_t;
+typedef uint8_t lcp_element_t;
 #define LCP_EL_SIZE sizeof(lcp_element_t)
 #define lcp_minus1 ((lcp_element_t)(~0))
+
+typedef uint8_t lcp_out_element_t;
+#define LCP_OUT_EL_SIZE sizeof(lcp_out_element_t)
 
 typedef uint32_t idx_element_t;
 #define IDX_EL_SIZE sizeof(idx_element_t)
@@ -21,6 +24,25 @@ void copyFile(FILE *origin, FILE *destination) {
 		fwrite(buffer, 1, len, destination);
 	}
 	free(buffer);
+}
+
+// Copies the whole content of file origin into file destination
+// Caller must open/close origin and destination streams
+void copyLCPFile(FILE *origin, FILE *destination) {
+	if (LCP_OUT_EL_SIZE == LCP_EL_SIZE) copyFile(origin, destination);
+	size_t bufferSize = BUFSIZ;
+	lcp_element_t *in_buffer = malloc(bufferSize * LCP_EL_SIZE);
+	lcp_out_element_t *out_buffer = malloc(bufferSize * LCP_OUT_EL_SIZE);
+	size_t len = 0;
+	while ((len = fread(in_buffer, LCP_EL_SIZE, bufferSize, origin)) > 0) {
+		for (size_t i = 0; i < len; ++i) {
+			out_buffer[i] = in_buffer[i];
+			if (in_buffer[i] == lcp_minus1) out_buffer[i] = -1;
+		}
+		fwrite(out_buffer, LCP_OUT_EL_SIZE, len, destination);
+	}
+	free(in_buffer);
+	free(out_buffer);
 }
 
 // Algorithm 1 (paper)
@@ -304,7 +326,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 				fwrite_unlocked(&a, LCP_EL_SIZE, 1, Lcur.f[c]);
 			}
 
-			alfa[c] = readMaxLength + 2;	// i.e. infinity ...
+			alfa[c] = readMaxLength + 1;	// i.e. infinity ...
 		}
 		closeStreams2(&Bpart);
 		closeStreams2(&Iprev);
@@ -323,7 +345,7 @@ void computeBWTLCP(size_t readMaxLength, size_t totLines) {
 	lcp = fopen(LCP_final, "wb");
 	openStreams2(&Lprev, 6, "rb", Lpart_TPL(p));
 	for (int i = 0; i < 6; ++i) {
-		copyFile(Lprev.f[i], lcp);
+		copyLCPFile(Lprev.f[i], lcp);
 	}
 	closeStreams2(&Lprev);
 	fclose(lcp);
