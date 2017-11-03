@@ -49,7 +49,7 @@ rebuild-test: clean subdirs bin $(TEST_SUMS)
 .PHONY: $(TEST_SUMS)
 $(TEST_SUMS): clean subdirs bin
 	@echo "Rebuilding test $@ (no output)" && \
-	time -p -o $(basename $(@)).time ./bwt_lcp $(basename $(@)) > $(basename $(@)).log 2> $(basename $(@)).err && \
+	time -p -o $(basename $(@)).time ./bwt_lcp $(basename $(@)) > $(basename $(@)).log && \
 	md5sum tests/BWTbin tests/LCP > $(@) || \
 	true > $(@)
 
