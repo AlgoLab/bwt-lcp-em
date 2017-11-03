@@ -6,6 +6,7 @@ LDFLAGS = -lz -lm
 P := bwt_lcp decode_bwt decode_lcp
 SUBDIRS := $(addprefix tests/, arrays supportBWT supportLists supportLCP)
 TEST_INPUTS := $(addprefix tests/, paper_example.fasta test.fasta.gz test.odd.fasta.gz test.253.fasta.gz test.290.fasta.gz)
+TEST_SUMS := $(addsuffix .sums, $(TEST_INPUTS))
 
 # Make must run serially (even if -j N > 1 is given) (GNU make extension)
 .NOTPARALLEL:
@@ -36,13 +37,21 @@ test: clean subdirs bin $(TEST_INPUTS)
 .PHONY: $(TEST_INPUTS)
 $(TEST_INPUTS): clean subdirs bin
 	@echo "Starting test on file $@ (no output)" && \
-	time -p -o .time ./bwt_lcp $@ > .log 2> .err && \
-	( \
-		diff .log $@.log; \
-		diff -y -W 40 .time $@.time; \
-		rm -f .time .log .err; \
-		md5sum -c $@.sums; \
-	)
+	time -p -o .time ./bwt_lcp $@ > .log 2> .err ; \
+	diff .log $@.log; \
+	diff -y -W 40 .time $@.time; \
+	rm -f .time .log .err; \
+	( test -s $(@) || md5sum -c $@.sums; );
+
+.PHONY: rebuild-test
+rebuild-test: clean subdirs bin $(TEST_SUMS)
+
+.PHONY: $(TEST_SUMS)
+$(TEST_SUMS): clean subdirs bin
+	@echo "Rebuilding test $@ (no output)" && \
+	time -p -o $(basename $(@)).time ./bwt_lcp $(basename $(@)) > $(basename $(@)).log 2> $(basename $(@)).err && \
+	md5sum tests/BWTbin tests/LCP > $(@) || \
+	true > $(@)
 
 %.debug: %.c
 	$(CC) $(CFLAGS_DEBUG) $^ -o $@ $(LDFLAGS)
