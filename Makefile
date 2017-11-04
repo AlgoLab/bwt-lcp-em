@@ -21,7 +21,8 @@ subdirs: $(SUBDIRS)
 %: %.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 # Additional requirements for bwt_lcp
-bwt_lcp: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
+bwt_lcp: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c common_types.h
+decode_lcp: common_types.h
 
 $(SUBDIRS):
 	mkdir -p $@
@@ -56,7 +57,8 @@ $(TEST_SUMS): clean subdirs bin
 %.debug: %.c
 	$(CC) $(CFLAGS_DEBUG) $^ -o $@ $(LDFLAGS)
 
-bwt_lcp.debug: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c
+bwt_lcp.debug: kseq.h dictionary.h dictionary.c streams.h streams.c algorithms.h algorithms.c common_types.h
+decode_lcp.debug: common_types.h
 
 .PHONY: debug
 debug: subdirs bwt_lcp.debug decode_bwt.debug decode_lcp.debug
