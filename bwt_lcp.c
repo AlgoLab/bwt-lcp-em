@@ -41,6 +41,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	printf("longest read length = %d\n", readMaxLength);
+
 	// Array with pointers to all files
 	FILE **filePointers = malloc((readMaxLength+1) * sizeof(FILE *));
 
@@ -58,18 +60,20 @@ int main(int argc, char *argv[]) {
 	char *readTwo;
 	char toWrite;
 	int mustFreeReadTwo = 0;
+	unsigned int *len_distr = calloc(readMaxLength + 1, sizeof(unsigned int));
 
+	readOne = calloc(readMaxLength + 1, sizeof(char));
 	while((i = kseq_read(seq)) >= 0) {
 		// Read 2 reads each time
 		// (+1 for null terminator)
-		readOne = malloc((i+1) * sizeof(char));
 		strcpy(readOne, seq -> seq.s);
+		++len_distr[i];
+
 		j = kseq_read(seq);
 		// If the second read doesn't exist the file has an odd number of lines
 		// which means that the last byte will store only half of valuable data (the upper half)
 		// and the lower half will be the code of '@', the character that indicates no information
-		if(j < 0) { 
-
+		if(j < 0) {
 			readTwo = malloc(readMaxLength * sizeof(char));
 			for (int k = 0; k < readMaxLength; ++k) {
 				readTwo[k] = '@';
@@ -78,63 +82,42 @@ int main(int argc, char *argv[]) {
 			linesCounter--;
 			mustFreeReadTwo = 1;
 		}
-		else
+		else {
 			readTwo = seq -> seq.s;
+			++len_distr[j];
+		}
+
 
 		// Reads both read starting from the right end and writes the correctly encoded characters (merge)
 		// in the right file. When one of the two reads is completely read 
 		// (happens when they are shorter the the longest read)
 		// start writing '#' instead, which indicates blank
 		int dxAlignCounter = readMaxLength;
-		while(dxAlignCounter > 0) {
+		while(dxAlignCounter >= 0) {
 			if(i > 0 && j > 0) {
 				toWrite = merge(readOne[i-1], readTwo[j-1]);
-				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
-				j--;
-				i--;
 			}
 			else if(i <= 0 && j > 0) {
-				toWrite = merge('#', readTwo[j-1]);
-				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
-				j--;
+				toWrite = merge(i == 0 ? '$': '#', readTwo[j-1]);
 			}
 			else if(i > 0 && j <= 0) {
-				toWrite = merge(readOne[i-1], '#');
-				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
-				i--;
+				toWrite = merge(readOne[i-1], j == 0 ? '$': '#');
 			}
 			else {
-				toWrite = 0x55; // encodes -> ##
-				fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
+				toWrite = merge(i == 0 ? '$': '#', mustFreeReadTwo ? '@' : (j == 0 ? '$': '#'));
 			}
-
-			dxAlignCounter--;			
+			fputc(toWrite, filePointers[readMaxLength - dxAlignCounter]);
+			j--;
+			i--;
+			dxAlignCounter--;
 		}
 		linesCounter+=2;
-		free(readOne);
-		if(mustFreeReadTwo)
-			free(readTwo);
-
 	}
-	printf("longest read length = %d\n", readMaxLength);
+	free(readOne);
+	if(mustFreeReadTwo)
+		free(readTwo);
 	printf("number of reads = %d\n", linesCounter);
-	// write the last file (i.e the last column) with all termination characters ($) (with their encoding)
-	// useless since we know that this file is full of $, 
-	//can be optimized by assuming that the nth character of file filePointers[readMaxLength] is always $
-	int sizeSentinels = (linesCounter / 2);
-	if(linesCounter % 2)
-		sizeSentinels++;
-	char *sentinels = malloc(sizeSentinels * sizeof(char));
-	for (int i = 0; i < sizeSentinels; ++i) {
-		if((i == sizeSentinels -1) && (linesCounter % 2 == 1))
-			sentinels[i] = 0x06; // $@
-		else
-			sentinels[i] = 0x00; // $$
-	}
-	fwrite(sentinels, sizeof(char), sizeSentinels, filePointers[readMaxLength]);
-	free(sentinels);
 
-	
 	// Close all streams
 	closeStreams(filePointers, readMaxLength);
 
@@ -147,38 +130,10 @@ int main(int argc, char *argv[]) {
 	computePartialBWT(readMaxLength, linesCounter);
 
 	printf("Computing BWT and LCP\n");
-	computeBWTLCP(readMaxLength, linesCounter);
+	computeBWTLCP(readMaxLength, linesCounter, len_distr);
 
 
-	/* Testing decode
-	int readToTest = 2;
-	char *test = decodeRead(filePointers, readMaxLength, readToTest);
-	printf("read[%d]: %s\n", readToTest, test);
-	free(test);
-	*/
-
-	/*
-		FILE *bwtEncoding = fopen("bwtEncoding", "wb");
-		int enc[12] = {0, 2, 3, 3, 1, 2, 2, 1, 1, 0, 0, 3};
-
-		fwrite(enc, sizeof(int), 12, bwtEncoding);
-		fclose(bwtEncoding);
-		bwtEncoding = fopen("bwtEncoding", "rb");
-		reconstructInterleave(bwtEncoding, 4, 12, filePointers);
-		fclose(bwtEncoding);
-		*/
-
-	/* Testing getEncodedColumn
-	char *column = getEncodedColumn(filePointers, 136);
-	FILE *prova = fopen("./tests/prova", "w");
-	int ttemp = linesCounter/2;
-	if(linesCounter % 2)
-		ttemp++;
-	fwrite(column, sizeof(char), ttemp, prova);
-	fclose(prova);
-	free(column);
-	*/
-
+	free(len_distr);
 
 	return 0;
 }

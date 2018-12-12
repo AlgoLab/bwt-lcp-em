@@ -5,7 +5,7 @@ LDFLAGS = -lz -lm
 
 P := bwt_lcp decode_bwt decode_lcp
 SUBDIRS := $(addprefix tests/, arrays supportBWT supportLists supportLCP)
-TEST_INPUTS := $(addprefix tests/, paper_example.fasta test.fasta.gz test.odd.fasta.gz test.253.fasta.gz test.290.fasta.gz)
+TEST_INPUTS := $(addprefix tests/, paper_example.fasta test.fasta.gz test.odd.fasta.gz test.253.fasta.gz test.290.fasta.gz test.7seqs.var.fasta)
 TEST_SUMS := $(addsuffix .sums, $(TEST_INPUTS))
 
 # Make must run serially (even if -j N > 1 is given) (GNU make extension)
