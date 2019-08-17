@@ -1,0 +1,101 @@
+types = ['giab']
+sizes = [1]
+programs = ['ble', 'beetl2', 'egap', 'egsa', 'beetl']
+
+from psutil import virtual_memory
+
+ram = virtual_memory().total  # total physical memory available
+memory = int(min(ram * 0.9 / (1024 ** 2), 4096))
+
+rule all:
+    input:
+        expand("log/{type}/{size}/{program}/time.txt",
+               type = types, size = sizes, program = programs)
+
+rule ble_lcp:
+    input:
+        "data/{type}-{size}.fasta.gz",
+        "tests/arrays/.placeholder",
+        "tests/BWT/.placeholder",
+        "tests/supportBWT/.placeholder",
+        "tests/supportLists/.placeholder",
+        "tests/supportLCP/.placeholder",
+    output:
+        "log/{type}/{size}/ble/time.txt"
+    log:
+        "log/{type}/{size}/ble/log.txt"
+    benchmark:
+        "log/{type}/{size}/ble/benchmark.txt"
+    shell:
+        "/usr/bin/time --verbose bin/ble {input} > {log} 2> {output}"
+
+
+rule beetl2_lcp:
+    input:
+        "data/{type}-{size}.fasta"
+    output:
+        "log/{type}/{size}/beetl2/time.txt"
+    log:
+        "log/{type}/{size}/beetl2/log.txt"
+    benchmark:
+        "log/{type}/{size}/beetl2/benchmark.txt"
+    shell:
+        "/usr/bin/time --verbose bin/BCR_LCP_GSA {input} beetl2output {memory} > {log} 2> {output}"
+
+
+rule egap_lcp:
+    input:
+        "data/{type}-{size}.fasta"
+    output:
+        "log/{type}/{size}/egap/time.txt"
+    log:
+        "log/{type}/{size}/egap/log.txt"
+    benchmark:
+        "log/{type}/{size}/egap/benchmark.txt"
+    shell:
+        "/usr/bin/time --verbose bin/eGap -m {memory} {input} > {log} 2> {output}"
+
+
+rule egsa_lcp:
+    input:
+        "data/{type}-{size}.fasta"
+    output:
+        "log/{type}/{size}/egsa/time.txt"
+    log:
+        "log/{type}/{size}/egsa/log.txt"
+    benchmark:
+        "log/{type}/{size}/egsa/benchmark.txt"
+    shell:
+        "/usr/bin/time --verbose bin/egsa {input} 0 > {log} 2> {output}"
+
+
+rule beetl_lcp:
+    input:
+        "data/{type}-{size}.fasta"
+    output:
+        "log/{type}/{size}/beetl/time.txt"
+    log:
+        "log/{type}/{size}/beetl/log.txt"
+    shell:
+        "/usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output}"
+
+
+rule create_test_dirs:
+    output:
+        "{dir}/.placeholder"
+    shell:
+        "touch {output}"
+
+rule fastagz:
+    input:
+        "/home/gianluca/Documenti/AlgoLab/datasets/BWT+LCP/lcp/input/{type}/{type}-{size}.fasta.gz"
+    output:
+        "data/{type}-{size}.fasta.gz"
+    shell: "rsync -av --progress {input} {output}"
+
+rule fasta:
+    input:
+        "data/{type}-{size}.fasta.gz"
+    output:
+        "data/{type}-{size}.fasta"
+    shell: "gunzip -k {input}"
