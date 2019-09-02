@@ -1,6 +1,10 @@
 types = ['giab']
-sizes = [1]
+sizes = [1, 2]
 programs = ['ble', 'beetl2', 'egap', 'egsa', 'beetl']
+beetl_tmp = expand("beetloutput-{letter}0{num}", letter=['B', 'L'], num=[0,1,2,3,4,5])
+ble_tmp = expand("bin/tests/{dir}/*", dir = ['arrays', 'BWT', 'outputFiles', 'supportBWT', 'supportFiles', 'supportLCP', 'supportLists'])
+
+
 
 from psutil import virtual_memory
 
@@ -12,14 +16,19 @@ rule all:
         expand("log/{type}/{size}/{program}/time.txt",
                type = types, size = sizes, program = programs)
 
-rule ble_lcp:
-    input:
-        "data/{type}-{size}.fasta.gz",
+rule ble_pre:
+    output:
         "tests/arrays/.placeholder",
         "tests/BWT/.placeholder",
         "tests/supportBWT/.placeholder",
         "tests/supportLists/.placeholder",
         "tests/supportLCP/.placeholder",
+    shell:
+        "touch {output}"
+
+rule ble_lcp:
+    input:
+        "data/{type}-{size}.fasta.gz",
     output:
         "log/{type}/{size}/ble/time.txt"
     log:
@@ -27,7 +36,7 @@ rule ble_lcp:
     benchmark:
         "log/{type}/{size}/ble/benchmark.txt"
     shell:
-        "/usr/bin/time --verbose bin/ble {input} > {log} 2> {output}"
+        "/usr/bin/time --verbose bin/ble {input} > {log} 2> {output} && rm -f {ble_tmp}"
 
 
 rule beetl2_lcp:
@@ -73,11 +82,11 @@ rule beetl_lcp:
     input:
         "data/{type}-{size}.fasta"
     output:
-        "log/{type}/{size}/beetl/time.txt"
+        real = "log/{type}/{size}/beetl/time.txt"
     log:
         "log/{type}/{size}/beetl/log.txt"
     shell:
-        "/usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output}"
+        "/usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output.real} && rm -f {beetl_tmp}"
 
 
 rule create_test_dirs:
@@ -90,12 +99,12 @@ rule fastagz:
     input:
         "/home/gianluca/Documenti/AlgoLab/datasets/BWT+LCP/lcp/input/{type}/{type}-{size}.fasta.gz"
     output:
-        "data/{type}-{size}.fasta.gz"
-    shell: "rsync -av --progress {input} {output}"
+        temp("data/{type}-{size}.fasta.gz")
+    shell: "cp {input} {output}"
 
 rule fasta:
     input:
         "data/{type}-{size}.fasta.gz"
     output:
-        "data/{type}-{size}.fasta"
+        temp("data/{type}-{size}.fasta")
     shell: "gunzip -k {input}"
