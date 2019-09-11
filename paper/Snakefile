@@ -1,10 +1,7 @@
-types = ['giab']
-sizes = [1, 2]
-programs = ['ble', 'beetl2', 'egap', 'egsa', 'beetl']
-beetl_tmp = expand("beetloutput-{letter}0{num}", letter=['B', 'L'], num=[0,1,2,3,4,5])
-ble_tmp = expand("bin/tests/{dir}/*", dir = ['arrays', 'BWT', 'outputFiles', 'supportBWT', 'supportFiles', 'supportLCP', 'supportLists'])
-
-
+types = ['giab', 'random']
+sizes = [1, 2, 4, 8, 16, 32]
+programs = ['ble', 'beetl2', 'egap',  'beetl'] #egsa
+tmpfiles = 'beetloutput* data/*.fasta.???* bin/tests/*/*'
 
 from psutil import virtual_memory
 
@@ -36,7 +33,7 @@ rule ble_lcp:
     benchmark:
         "log/{type}/{size}/ble/benchmark.txt"
     shell:
-        "/usr/bin/time --verbose bin/ble {input} > {log} 2> {output} && rm -f {ble_tmp}"
+        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/ble {input} > {log} 2> {output}"
 
 
 rule beetl2_lcp:
@@ -49,7 +46,7 @@ rule beetl2_lcp:
     benchmark:
         "log/{type}/{size}/beetl2/benchmark.txt"
     shell:
-        "/usr/bin/time --verbose bin/BCR_LCP_GSA {input} beetl2output {memory} > {log} 2> {output}"
+        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/BCR_LCP_GSA {input} beetl2output 0 > {log} 2> {output}"
 
 
 rule egap_lcp:
@@ -62,7 +59,7 @@ rule egap_lcp:
     benchmark:
         "log/{type}/{size}/egap/benchmark.txt"
     shell:
-        "/usr/bin/time --verbose bin/eGap -m {memory} {input} > {log} 2> {output}"
+        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/eGap -m {memory} {input} > {log} 2> {output}"
 
 
 rule egsa_lcp:
@@ -75,7 +72,7 @@ rule egsa_lcp:
     benchmark:
         "log/{type}/{size}/egsa/benchmark.txt"
     shell:
-        "/usr/bin/time --verbose bin/egsa {input} 0 > {log} 2> {output}"
+        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/egsa {input} 0 > {log} 2> {output}"
 
 
 rule beetl_lcp:
@@ -86,7 +83,7 @@ rule beetl_lcp:
     log:
         "log/{type}/{size}/beetl/log.txt"
     shell:
-        "/usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output.real} && rm -f {beetl_tmp}"
+        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output.real}"
 
 
 rule create_test_dirs:
