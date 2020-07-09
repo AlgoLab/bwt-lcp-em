@@ -1,8 +1,14 @@
 types = ['giab', 'random']
+#types = ['giab']
 sizes = [1, 2, 4, 8, 16, 32]
-programs = ['ble', 'beetl2', 'egap',  'beetl'] #egsa
-tmpfiles = 'beetloutput* data/*.fasta.???* bin/tests/*/*'
+#sizes = [16]
+#programs = ['ble', 'beetl2', 'egap',  'beetl', 'egsa']
+programs = ['beetl']
+tmpfiles = 'beetl*output* data/*.fasta.???* bin/tests/*/* *.* data/tmp/* data/partition/* tests/*/*'
+timelimit = '50h'
+time_cmd = f'/usr/bin/time --verbose /usr/bin/timeout  -s 9 {timelimit}'
 
+#types = ['giab', 'random', 'GA1', 'ion_exome']
 from psutil import virtual_memory
 
 ram = virtual_memory().total  # total physical memory available
@@ -33,7 +39,7 @@ rule ble_lcp:
     benchmark:
         "log/{type}/{size}/ble/benchmark.txt"
     shell:
-        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/ble {input} > {log} 2> {output}"
+        "rm -f {tmpfiles} && {time_cmd} bin/ble {input} > {log} 2> {output}"
 
 
 rule beetl2_lcp:
@@ -46,7 +52,7 @@ rule beetl2_lcp:
     benchmark:
         "log/{type}/{size}/beetl2/benchmark.txt"
     shell:
-        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/BCR_LCP_GSA {input} beetl2output 0 > {log} 2> {output}"
+        "rm -f {tmpfiles} && {time_cmd} bin/BCR_LCP_GSA {input} beetl2output 0 > {log} 2> {output}"
 
 
 rule egap_lcp:
@@ -59,7 +65,7 @@ rule egap_lcp:
     benchmark:
         "log/{type}/{size}/egap/benchmark.txt"
     shell:
-        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/eGap -m {memory} {input} > {log} 2> {output}"
+        "rm -f {tmpfiles} && {time_cmd} bin/eGap -m {memory} {input} > {log} 2> {output}"
 
 
 rule egsa_lcp:
@@ -72,7 +78,7 @@ rule egsa_lcp:
     benchmark:
         "log/{type}/{size}/egsa/benchmark.txt"
     shell:
-        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/egsa {input} 0 > {log} 2> {output}"
+        "rm -f {tmpfiles} && {time_cmd} bin/egsa {input} 0 > {log} 2> {output}"
 
 
 rule beetl_lcp:
@@ -83,7 +89,7 @@ rule beetl_lcp:
     log:
         "log/{type}/{size}/beetl/log.txt"
     shell:
-        "rm -f {tmpfiles} && /usr/bin/time --verbose bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output.real}"
+        "rm -f {tmpfiles} && {time_cmd} bin/beetl-bwt -i {input} -o beetloutput --output-format=ascii --generate-lcp > {log} 2> {output.real}"
 
 
 rule create_test_dirs:
@@ -92,16 +98,27 @@ rule create_test_dirs:
     shell:
         "touch {output}"
 
+rule cpok:
+    # Sometimes cp fails to transfer the entire file
+    input:
+        orig = "/home/gianluca/Documenti/AlgoLab/datasets/BWT+LCP/lcp/input/{type}/{type}-{size}.fasta.gz",
+        dest = "data/{type}-{size}.fasta.gz"
+    output:
+        temp("data/{type}-{size}.fasta.gz.ok")
+    shell:
+        "test -s {input.dest} || rm -f {input.orig}; test -s {input.dest} && touch {output}"
+
 rule fastagz:
     input:
         "/home/gianluca/Documenti/AlgoLab/datasets/BWT+LCP/lcp/input/{type}/{type}-{size}.fasta.gz"
     output:
         temp("data/{type}-{size}.fasta.gz")
-    shell: "cp {input} {output}"
+    shell: "rm -f {tmpfiles} && rsync {input} {output}"
 
 rule fasta:
     input:
-        "data/{type}-{size}.fasta.gz"
+        f = "data/{type}-{size}.fasta.gz",
+#        t = "data/{type}-{size}.fasta.gz.ok"
     output:
         temp("data/{type}-{size}.fasta")
-    shell: "gunzip -k {input}"
+    shell: "rm -f {tmpfiles} && gunzip -k {input.f}"
