@@ -121,7 +121,9 @@ Main memory usage
   NA means that the tool crashed after saturating either the
   available (8GB) RAM or the disk space.*
 
-
+| abc | defghi |
+:-: | -----------:
+bar | baz
 
 ::: {#table:experimental-evaluation-space}
   ----- ----- ------- ------------------- ------------------ ---------- --------- --------
