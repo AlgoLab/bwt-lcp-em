@@ -115,7 +115,11 @@ Main memory usage
     16M  |      65 |                483 |              3007 |   NA      |       NA  |   4197
     32M  |     128 |                938 |              3982 |   NA      |       NA  |   4197
 
-* Peak RAM usage to compute the BWT and the LCP (in megabytes). The
+
+|    l   |  ble  |  BEETL2          |  BEETL          | gsa-is  |  egsa   |  egap   |
+ -------:| -----:| --------------- :| ---------------:| -------:| -------:| ---------:
+
+  Peak RAM usage to compute the BWT and the LCP (in megabytes). The
   first column indicates the number of sequences in the datasets. Column
   l indicates the maximum value of the LCP array on that dataset.
   NA means that the tool crashed after saturating either the
