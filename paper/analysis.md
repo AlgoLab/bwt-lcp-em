@@ -107,14 +107,14 @@ Main memory usage
 #### Table 1 (Dataset: NA24385)
                                                                                   
 
-| n   | l | ble | BEETL2 | BEETL | gsa-is | egsa |
-|----:|--:|----:|-------:|------:|-------:|-----:|
-|   1M  |       7 |                 35 |               265 |      1312 |     1894  |    730 |
-|   2M  |      11 |                 67 |               510 |      2621 |     2099  |   1458 |
-|   4M  |      19 |                131 |              1042 |      5240 |     2099  |   2917 |
-|   8M  |      34 |                255 |              2166 |   NA      |     2099  |   4197 |
-|  16M  |      65 |                483 |              3007 |   NA      |       NA  |   4197 |
-|  32M  |     128 |                938 |              3982 |   NA      |       NA  |   4197 |
+|   n |   l | ble | BEETL2 | BEETL | gsa-is | egsa | egap |
+|----:|----:|----:|-------:|------:|-------:|-----:|-----:|
+|  1M | 148 |   7 |     35 |   265 |   1312 | 1894 |  730 |
+|  2M | 148 |  11 |     67 |   510 |   2621 | 2099 | 1458 |
+|  4M | 148 |  19 |    131 |  1042 |   5240 | 2099 | 2917 |
+|  8M | 148 |  34 |    255 |  2166 |     NA | 2099 | 4197 |
+| 16M | 148 |  65 |    483 |  3007 |     NA |   NA | 4197 |
+| 32M | 148 | 128 |    938 |  3982 |     NA |   NA | 4197 |
 
   Peak RAM usage to compute the BWT and the LCP (in megabytes). The
   first column indicates the number of sequences in the datasets. Column
@@ -122,21 +122,16 @@ Main memory usage
   NA means that the tool crashed after saturating either the
   available (8GB) RAM or the disk space.*
 
-| abc | defghi |
-:-: | -----------:
-bar | baz
-
-::: {#table:experimental-evaluation-space}
-  ----- ----- ------- ------------------- ------------------ ---------- --------- --------
+ #### Table 1 (Dataset: random)
                                                                                   
-        l     `ble`   `BEETL2`   `BEETL`   `gsa-is`    `egsa`   `egap`
-     1M             7                  35                247       1338      1932      749
-     2M            11                  67                437       2674      2099     1487
-     4M            19                 131                859       5346      2099     2971
-     8M            34                 255               1780    NA      2099     4197
-    16M            65                 483               3379    NA   NA     4197
-    32M           128                 938               3982    NA   NA     4197
-  ----- ----- ------- ------------------- ------------------ ---------- --------- --------
+|   n |   l | ble | BEETL2 | BEETL | gsa-is | egsa | egap |
+|----:|----:|----:|-------:|------:|-------:|-----:|-----:|
+|  1M | 148 |   7 |     35 |   247 |   1338 | 1932 |  749 |
+|  2M | 148 |  11 |     67 |   437 |   2674 | 2099 | 1487 |
+|  4M | 148 |  19 |    131 |   859 |   5346 | 2099 | 2971 |
+|  8M | 148 |  34 |    255 |  1780 |     NA | 2099 | 4197 |
+| 16M | 148 |  65 |    483 |  3379 |     NA |   NA | 4197 |
+| 32M | 148 | 128 |    938 |  3982 |     NA |   NA | 4197 |
 
   :  Peak RAM usage to compute the BWT and the LCP (in megabytes). The
   first column indicates the number of sequences in the datasets. Column
