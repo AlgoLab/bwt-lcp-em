@@ -9,7 +9,7 @@ other tools specifically designed to index datasets composed by a huge
 number of short sequences such as Next-Generation Sequencing read sets.
 
 We have compared `ble` with the original implementation of
-`[extLCP](https://github.com/BEETL/BEETL)` (BEETL), as well as a more
+`[extLCP]`(https://github.com/BEETL/BEETL) (BEETL), as well as a more
 recent version ([BEETL2](https://github.com/giovannarosone/BCR_LCP_GSA)) that implements a fully external
 memory approach, an in-memory method
 `[gsa-is](https://github.com/felipelouza/gsa-is)`, and two recent external memory
