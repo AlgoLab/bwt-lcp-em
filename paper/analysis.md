@@ -115,8 +115,18 @@ Main memory usage
     16M  |      65 |                483 |              3007 |   NA      |       NA  |   4197
     32M  |     128 |                938 |              3982 |   NA      |       NA  |   4197
 
-
-|    l   |  ble  |  BEETL2          |  BEETL          | gsa-is  |  egsa   |  egap   |
+| l                  | ble   | BEETL2  | BEETL  | gsa-is | egsa | egap     |
+|:------------------------------------------------------|:-----------|--------------------:|---------------------:|--------------------:|---------------------:|------|
+| [bedcov\_c1\_cgr.c](bedcov/bedcov_c1_cgr.c)           | C          |                 5.2 |                138.4 |                10.7 |                 19.1 |      |
+| [bedcov\_cr1\_klib.cr](bedcov/bedcov_cr1_klib.cr)     | Crystal    |                 8.8 |                319.6 |                14.8 |                 40.7 |      |
+| [bedcov\_nim1\_klib.nim](bedcov/bedcov_nim1_klib.nim) | Nim        |                16.6 |                248.4 |                26.0 |                 34.1 |      |
+| [bedcov\_jl1\_klib.jl](bedcov/bedcov_jl1_klib.jl)     | Julia      |                25.9 |                428.1 |                63.0 |                257.0 |      |
+| [bedcov\_go1.go](bedcov/bedcov_go1.go)                | Go         |                34.0 |                318.9 |                21.8 |                 47.3 |      |
+| [bedcov\_js1\_cgr.js](bedcov/bedcov_js1_cgr.jl)       | Javascript |                76.4 |               2219.9 |                80.0 |                316.8 |      |
+| [bedcov\_lua1\_cgr.lua](bedcov/bedcov_lua1_cgr.lua)   | LuaJIT     |               174.7 |               2668.0 |               218.9 |                364.6 |      |
+| [bedcov\_py1\_cgr.py](bedcov/bedcov_py1_cgr.py)       | PyPy       |             17332.9 |               1594.3 |              5481.2 |                256.8 |      |
+| [bedcov\_py1\_cgr.py](bedcov/bedcov_py1_cgr.py)       | Python     |            >33770.4 |               2317.6 |            >20722.0 |                313.7 |      |
+| l                                                     | ble        |              BEETL2 |                BEETL |              gsa-is |                 egsa | egap |
  -------:| -----:| --------------- :| ---------------:| -------:| -------:| ---------:
 
   Peak RAM usage to compute the BWT and the LCP (in megabytes). The
