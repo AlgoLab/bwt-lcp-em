@@ -104,11 +104,11 @@ with less memory than the one used for this evaluation.
 Main memory usage
 -----------------
 
-#### Table 1
+#### Table 1 (Dataset: NA24385)
                                                                                   
 
-| n   | l | ble | BEETL2 | BEETL | gsa-is | egsa | egap |
-|----:|--:|:----|-------:|------:|-------:|-----:|-----:|
+| n   | l | ble | BEETL2 | BEETL | gsa-is | egsa |
+|----:|--:|----:|-------:|------:|-------:|-----:|
 |   1M  |       7 |                 35 |               265 |      1312 |     1894  |    730 |
 |   2M  |      11 |                 67 |               510 |      2621 |     2099  |   1458 |
 |   4M  |      19 |                131 |              1042 |      5240 |     2099  |   2917 |
