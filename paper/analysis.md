@@ -9,11 +9,13 @@ other tools specifically designed to index datasets composed by a huge
 number of short sequences such as Next-Generation Sequencing read sets.
 
 We have compared `ble` with the original implementation of
-`[extLCP]`(https://github.com/BEETL/BEETL) (BEETL), as well as a more
+[extLCP](https://github.com/BEETL/BEETL) (BEETL), as well as a more
 recent version ([BEETL2](https://github.com/giovannarosone/BCR_LCP_GSA)) that implements a fully external
 memory approach, an in-memory method
-`[gsa-is](https://github.com/felipelouza/gsa-is)`, and two recent external memory
-tools (`[egsa](https://github.com/felipelouza/egsa)` and `[egap](https://github.com/felipelouza/egap)`). Unless explicitly stated otherwise, we have
+[gsa-is](https://github.com/felipelouza/gsa-is), and two recent external memory
+tools: [egsa](https://github.com/felipelouza/egsa) and
+[egap](https://github.com/felipelouza/egap). 
+Unless explicitly stated otherwise, we have
 run all tools with the default values for their runtime parameters.
 
 Our comparison shows that `ble` requires no more than three times the
